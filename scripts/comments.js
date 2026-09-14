@@ -5,15 +5,17 @@ export function initializeComments() {
 
     commentWrapper.style.display = 'none';
 
-    showHideBtn.addEventListener('click', function () {
+    showHideBtn.addEventListener('click', () => {
         let showHideText = showHideBtn.textContent;
+
         if (showHideText === 'Show comments') {
             showHideBtn.textContent = 'Hide comments';
             commentWrapper.style.display = 'block';
         } else {
             showHideBtn.textContent = 'Show comments';
             commentWrapper.style.display = 'none';
-        }})
+        }
+    });
 
 // Comment form stuff
     let form = document.querySelector('.comment-form');
@@ -21,7 +23,7 @@ export function initializeComments() {
     let commentField = form.elements.comment;
     let list = document.querySelector('.comment-container');
 
-    form.addEventListener('submit', function (event) {
+    form.addEventListener('submit', (event) => {
         event.preventDefault();
 
         let listItem = document.createElement('li');
@@ -41,5 +43,5 @@ export function initializeComments() {
 
         nameField.value = '';
         commentField.value = '';
-    })
+    });
 }

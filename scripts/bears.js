@@ -11,7 +11,7 @@ let params = {
     origin: "*"
 };
 
-function fetchImageUrl(fileName) {
+async function fetchImageUrl(fileName) {
     let imageParams = {
         action: "query",
         titles: "File:" + fileName,
@@ -22,32 +22,33 @@ function fetchImageUrl(fileName) {
     };
 
     let url = baseUrl + "?" + new URLSearchParams(imageParams).toString();
-    return fetch(url).then(function(res) {
-        if (!res.ok) {
-            throw new Error('Network response was not ok');
-        }
-        return res.json();
-    }).then(function(data) {
-        let pages = data.query.pages;
-        let page = Object.values(pages)[0];
 
-        if (!page.imageinfo || !page.imageinfo[0]) {
-            throw new Error('No image information available');
-        }
+    let res = await fetch(url);
 
-        return page.imageinfo[0].url;
-    });
+    if (!res.ok) {
+        throw new Error('Network response was not ok');
+    }
+
+    let data = await res.json();
+    let pages = data.query.pages;
+    let page = Object.values(pages)[0];
+
+    if (!page.imageinfo || !page.imageinfo[0]) {
+        throw new Error('No image information available');
+    }
+
+    return page.imageinfo[0].url;
 }
 
 function checkImage(imageUrl) {
-    return new Promise(function(resolve, reject) {
+    return new Promise((resolve, reject) => {
         let image = new Image();
 
-        image.onload = function() {
+        image.onload = () => {
             resolve(imageUrl);
         };
 
-        image.onerror = function() {
+        image.onerror = () => {
             reject(new Error('Image could not be loaded'));
         };
 
@@ -55,7 +56,7 @@ function checkImage(imageUrl) {
     });
 }
 
-function extractBears(wikitext) {
+async function extractBears(wikitext) {
     let speciesTables = wikitext.split('{{Species table/end}}');
     let bearPromises = [];
 
@@ -71,20 +72,24 @@ function extractBears(wikitext) {
             if (nameMatch && binomialMatch && imageMatch && rangeMatch) {
                 let fileName = imageMatch[1].trim().replace('File:', '');
 
-                let bearPromise = fetchImageUrl(fileName).then(function (imageUrl) {
-                    return checkImage(imageUrl);
-                })
-                    .catch(function(error) {
-                    console.error('Error fetching image URL:', error);
-                    return "media/placeholder.png";
-                }).then(function(imageUrl) {
+                let bearPromise = (async () => {
+                    let imageUrl;
+
+                    try {
+                        imageUrl = await fetchImageUrl(fileName);
+                        imageUrl = await checkImage(imageUrl);
+                    } catch (error) {
+                        console.error('Error loading image:', error);
+                        imageUrl = "media/placeholder.png";
+                    }
+
                     return {
                         name: nameMatch[1],
                         binomial: binomialMatch[1],
                         image: imageUrl,
                         range: rangeMatch[1].trim()
                     };
-                });
+                })();
 
                 bearPromises.push(bearPromise);
             }
@@ -107,20 +112,25 @@ function extractBears(wikitext) {
 }
 
 
-export function initializeBears() {
-    fetch(baseUrl + "?" + new URLSearchParams(params).toString())
-        .then(function(res) {
-            if (!res.ok) {
-                throw new Error('Network response was not ok');
-            }
-            return res.json();
-        })
-        .then(function(data) {
-            extractBears(data.parse.wikitext['*']);
-        })
-        .catch(function(error) {
-            console.error('Error fetching bear data:', error);
-            var moreBears = document.querySelector('.more_bears');
-            moreBears.innerHTML += '<p>Could not load bear data.</p>';
-        });
+export async function initializeBears() {
+    try {
+        let res = await fetch(baseUrl + "?" + new URLSearchParams(params).toString());
+
+        if (!res.ok) {
+            throw new Error('Network response was not ok');
+        }
+
+        let data = await res.json();
+
+        if (!data.parse || !data.parse.wikitext || !data.parse.wikitext['*']) {
+            throw new Error('Invalid bear data received');
+        }
+
+        await extractBears(data.parse.wikitext['*']);
+    } catch (error) {
+        console.error('Error fetching bear data:', error);
+
+        let moreBears = document.querySelector('.more_bears');
+        moreBears.innerHTML += '<p>Could not load bear data.</p>';
+    }
 }
