@@ -1,8 +1,8 @@
 // Fetching bear data
-var baseUrl = "https://en.wikipedia.org/w/api.php";
-var title = "List_of_ursids";
+let baseUrl = "https://en.wikipedia.org/w/api.php";
+let title = "List_of_ursids";
 
-var params = {
+let params = {
     action: "parse",
     page: title,
     prop: "wikitext",
@@ -12,7 +12,7 @@ var params = {
 };
 
 function fetchImageUrl(fileName) {
-    var imageParams = {
+    let imageParams = {
         action: "query",
         titles: "File:" + fileName,
         prop: "imageinfo",
@@ -21,54 +21,61 @@ function fetchImageUrl(fileName) {
         origin: "*"
     };
 
-    var url = baseUrl + "?" + new URLSearchParams(imageParams).toString();
+    let url = baseUrl + "?" + new URLSearchParams(imageParams).toString();
     return fetch(url).then(function(res) {
         return res.json();
     }).then(function(data) {
-        var pages = data.query.pages;
-        var page = Object.values(pages)[0];
+        let pages = data.query.pages;
+        let page = Object.values(pages)[0];
         return page.imageinfo[0].url;
     });
 }
 
 function extractBears(wikitext) {
-    var speciesTables = wikitext.split('{{Species table/end}}');
-    var bears = [];
+    let speciesTables = wikitext.split('{{Species table/end}}');
+    let bearPromises = [];
+
     speciesTables.forEach(function(table) {
-        var rows = table.split('{{Species table/row');
+        let rows = table.split('{{Species table/row');
+
         rows.forEach(function(row) {
-            var nameMatch = row.match(/\|name=\[\[(.*?)\]\]/);
-            var binomialMatch = row.match(/\|binomial=(.*?)\n/);
-            var imageMatch = row.match(/\|image=(.*?)\n/);
+            let nameMatch = row.match(/\|name=\[\[(.*?)\]\]/);
+            let binomialMatch = row.match(/\|binomial=(.*?)\n/);
+            let imageMatch = row.match(/\|image=(.*?)\n/);
+            let rangeMatch = row.match(/\|range=(.*?)(?=\s*\|range-image=)/);
 
-            if (nameMatch && binomialMatch && imageMatch) {
-                var fileName = imageMatch[1].trim().replace('File:', '');
+            if (nameMatch && binomialMatch && imageMatch && rangeMatch) {
+                let fileName = imageMatch[1].trim().replace('File:', '');
 
-                fetchImageUrl(fileName).then(function(imageUrl) {
-                    var bear = {
+                let bearPromise = fetchImageUrl(fileName).then(function(imageUrl) {
+                    return {
                         name: nameMatch[1],
                         binomial: binomialMatch[1],
                         image: imageUrl,
-                        range: "TODO extract correct range"
+                        range: rangeMatch[1].trim()
                     };
-                    bears.push(bear);
-
-                    if (bears.length === rows.length) {
-                        var moreBears = document.querySelector('.more_bears');
-                        bears.forEach(function(bear) {
-                            var html = '<div class="bear">' +
-                                '<img src="' + bear.image + '" alt="Image of ' + bear.name + '" style="width:200px; height:auto;">' +
-                                '<p><b>' + bear.name + '</b> (' + bear.binomial + ')</p>' +
-                                '<p>Range: ' + bear.range + '</p>' +
-                                '</div>';
-                            moreBears.innerHTML += html;
-                        });
-                    }
                 });
+
+                bearPromises.push(bearPromise);
             }
         });
     });
+
+    Promise.all(bearPromises).then(function(bears) {
+        let moreBears = document.querySelector('.more_bears');
+
+        bears.forEach(function(bear) {
+            let html = '<div class="bear">' +
+                '<img src="' + bear.image + '" alt="Image of ' + bear.name + '" style="width:200px; height:auto;">' +
+                '<p><b>' + bear.name + '</b> (' + bear.binomial + ')</p>' +
+                '<p>Range: ' + bear.range + '</p>' +
+                '</div>';
+
+            moreBears.innerHTML += html;
+        });
+    });
 }
+
 
 export function initializeBears() {
     fetch(baseUrl + "?" + new URLSearchParams(params).toString())

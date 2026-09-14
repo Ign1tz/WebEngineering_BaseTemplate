@@ -1,35 +1,34 @@
 export function initializeComments() {
 // Show/hide comments toggle
-    var showHideBtn = document.querySelector('.show-hide');
-    var commentWrapper = document.querySelector('.comment-wrapper');
+    let showHideBtn = document.querySelector('.show-hide');
+    let commentWrapper = document.querySelector('.comment-wrapper');
 
     commentWrapper.style.display = 'none';
 
-    showHideBtn.onclick = function () {
-        var showHideText = showHideBtn.textContent;
-        if (showHideText === 'Show comment') {
+    showHideBtn.addEventListener('click', function () {
+        let showHideText = showHideBtn.textContent;
+        if (showHideText === 'Show comments') {
             showHideBtn.textContent = 'Hide comments';
             commentWrapper.style.display = 'block';
         } else {
             showHideBtn.textContent = 'Show comments';
             commentWrapper.style.display = 'none';
-        }
-    };
+        }})
 
 // Comment form stuff
-    var form = document.querySelector('.comment-form');
-    var nameField = document.querySelector('#name');
-    var commentField = document.querySelector('#comment');
-    var list = document.querySelector('.comment-container');
+    let form = document.querySelector('.comment-form');
+    let nameField = form.elements.name;
+    let commentField = form.elements.comment;
+    let list = document.querySelector('.comment-container');
 
-    form.onsubmit = function (e) {
-        e.preventDefault();
+    form.addEventListener('submit', function (event) {
+        event.preventDefault();
 
-        var listItem = document.createElement('li');
-        var namePara = document.createElement('p');
-        var commentPara = document.createElement('p');
-        var nameValue = nameField.value;
-        var commentValue = commentField.value;
+        let listItem = document.createElement('li');
+        let namePara = document.createElement('p');
+        let commentPara = document.createElement('p');
+        let nameValue = nameField.value;
+        let commentValue = commentField.value;
 
         namePara.textContent = nameValue;
         commentPara.textContent = commentValue;
@@ -42,5 +41,5 @@ export function initializeComments() {
 
         nameField.value = '';
         commentField.value = '';
-    };
+    })
 }

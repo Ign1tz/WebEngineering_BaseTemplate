@@ -2,21 +2,21 @@ document.querySelector('.search.js').addEventListener('submit', function(e) {
     e.preventDefault();
 
     document.querySelectorAll('.highlight').forEach(function(el) {
-        var parent = el.parentNode;
+        let parent = el.parentNode;
         parent.replaceChild(document.createTextNode(el.textContent), el);
         parent.normalize();
     });
 
-    var searchKey = this.q.value.trim();
+    let searchKey = this.q.value.trim();
     if (!searchKey) return;
 
-    var regex = new RegExp('(' + searchKey.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi');
+    let regex = new RegExp('(' + searchKey.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi');
 
     function walk(node) {
         if (node.nodeType === 3) { // Text node
-            var match = node.nodeValue.match(regex);
+            let match = node.nodeValue.match(regex);
             if (match) {
-                var span = document.createElement('span');
+                let span = document.createElement('span');
                 span.innerHTML = node.nodeValue.replace(regex, '<mark class="highlight">$1</mark>');
                 node.replaceWith.apply(node, span.childNodes);
             }
@@ -31,13 +31,13 @@ document.querySelector('.search.js').addEventListener('submit', function(e) {
 
 
 // Show/hide comments.js toggle
-var showHideBtn = document.querySelector('.show-hide');
-var commentWrapper = document.querySelector('.comment-wrapper');
+let showHideBtn = document.querySelector('.show-hide');
+let commentWrapper = document.querySelector('.comment-wrapper');
 
 commentWrapper.style.display = 'none';
 
 showHideBtn.onclick = function() {
-    var showHideText = showHideBtn.textContent;
+    let showHideText = showHideBtn.textContent;
     if (showHideText === 'Show comment') {
         showHideBtn.textContent = 'Hide comments.js';
         commentWrapper.style.display = 'block';
@@ -48,19 +48,19 @@ showHideBtn.onclick = function() {
 };
 
 // Comment form stuff
-var form = document.querySelector('.comment-form');
-var nameField = document.querySelector('#name');
-var commentField = document.querySelector('#comment');
-var list = document.querySelector('.comment-container');
+let form = document.querySelector('.comment-form');
+let nameField = document.querySelector('#name');
+let commentField = document.querySelector('#comment');
+let list = document.querySelector('.comment-container');
 
 form.onsubmit = function(e) {
     e.preventDefault();
 
-    var listItem = document.createElement('li');
-    var namePara = document.createElement('p');
-    var commentPara = document.createElement('p');
-    var nameValue = nameField.value;
-    var commentValue = commentField.value;
+    let listItem = document.createElement('li');
+    let namePara = document.createElement('p');
+    let commentPara = document.createElement('p');
+    let nameValue = nameField.value;
+    let commentValue = commentField.value;
 
     namePara.textContnet = nameValue;
     commentPara.textContent = commentValue;
@@ -76,10 +76,10 @@ form.onsubmit = function(e) {
 };
 
 // Fetching bear data
-var baseUrl = "https://en.wikipedia.org/w/api.php";
-var title = "List_of_ursids";
+let baseUrl = "https://en.wikipedia.org/w/api.php";
+let title = "List_of_ursids";
 
-var params = {
+let params = {
     action: "parse",
     page: title,
     prop: "wikitext",
@@ -89,7 +89,7 @@ var params = {
 };
 
 function fetchImageUrl(fileName) {
-    var imageParams = {
+    let imageParams = {
         action: "query",
         titles: "File:" + fileName,
         prop: "imageinfo",
@@ -98,31 +98,31 @@ function fetchImageUrl(fileName) {
         origin: "*"
     };
 
-    var url = baseUrl + "?" + new URLSearchParams(imageParams).toString();
+    let url = baseUrl + "?" + new URLSearchParams(imageParams).toString();
     return fetch(url).then(function(res) {
         return res.json();
     }).then(function(data) {
-        var pages = data.query.pages;
-        var page = Object.values(pages)[0];
+        let pages = data.query.pages;
+        let page = Object.values(pages)[0];
         return page.imageinfo[0].url;
     });
 }
 
 function extractBears(wikitext) {
-    var speciesTables = wikitext.split('{{Species table/end}}');
-    var bears = [];
+    let speciesTables = wikitext.split('{{Species table/end}}');
+    let bears = [];
     speciesTables.forEach(function(table) {
-        var rows = table.split('{{Species table/row');
+        let rows = table.split('{{Species table/row');
         rows.forEach(function(row) {
-            var nameMatch = row.match(/\|name=\[\[(.*?)\]\]/);
-            var binomialMatch = row.match(/\|binomial=(.*?)\n/);
-            var imageMatch = row.match(/\|image=(.*?)\n/);
+            let nameMatch = row.match(/\|name=\[\[(.*?)\]\]/);
+            let binomialMatch = row.match(/\|binomial=(.*?)\n/);
+            let imageMatch = row.match(/\|image=(.*?)\n/);
 
             if (nameMatch && binomialMatch && imageMatch) {
-                var fileName = imageMatch[1].trim().replace('File:', '');
+                let fileName = imageMatch[1].trim().replace('File:', '');
 
                 fetchImageUrl(fileName).then(function(imageUrl) {
-                    var bear = {
+                    let bear = {
                         name: nameMatch[1],
                         binomial: binomialMatch[1],
                         image: imageUrl,
@@ -131,9 +131,9 @@ function extractBears(wikitext) {
                     bears.push(bear);
 
                     if (bears.length === rows.length) {
-                        var moreBears = document.querySelector('.more_bears');
+                        let moreBears = document.querySelector('.more_bears');
                         bears.forEach(function(bear) {
-                            var html = '<div class="bear">' +
+                            let html = '<div class="bear">' +
                                 '<img src="' + bear.image + '" alt="Image of ' + bear.name + '" style="width:200px; height:auto;">' +
                                 '<p><b>' + bear.name + '</b> (' + bear.binomial + ')</p>' +
                                 '<p>Range: ' + bear.range + '</p>' +

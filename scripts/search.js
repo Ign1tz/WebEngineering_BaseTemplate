@@ -3,21 +3,21 @@ export function initializeSearch() {
         e.preventDefault();
 
         document.querySelectorAll('.highlight').forEach(function(el) {
-            var parent = el.parentNode;
+            let parent = el.parentNode;
             parent.replaceChild(document.createTextNode(el.textContent), el);
             parent.normalize();
         });
 
-        var searchKey = this.q.value.trim();
+        let searchKey = this.element.q.value.trim();
         if (!searchKey) return;
 
-        var regex = new RegExp('(' + searchKey.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi');
+        let regex = new RegExp('(' + searchKey.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi');
 
         function walk(node) {
             if (node.nodeType === 3) { // Text node
-                var match = node.nodeValue.match(regex);
+                let match = node.nodeValue.match(regex);
                 if (match) {
-                    var span = document.createElement('span');
+                    let span = document.createElement('span');
                     span.innerHTML = node.nodeValue.replace(regex, '<mark class="highlight">$1</mark>');
                     node.replaceWith.apply(node, span.childNodes);
                 }
