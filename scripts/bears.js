@@ -1,8 +1,8 @@
 // Fetching bear data
-let baseUrl = "https://en.wikipedia.org/w/api.php";
-let title = "List_of_ursids";
+const baseUrl = "https://en.wikipedia.org/w/api.php";
+const title = "List_of_ursids";
 
-let params = {
+const params = {
     action: "parse",
     page: title,
     prop: "wikitext",
@@ -12,7 +12,7 @@ let params = {
 };
 
 async function fetchImageUrl(fileName) {
-    let imageParams = {
+    const imageParams = {
         action: "query",
         titles: "File:" + fileName,
         prop: "imageinfo",
@@ -21,17 +21,17 @@ async function fetchImageUrl(fileName) {
         origin: "*"
     };
 
-    let url = baseUrl + "?" + new URLSearchParams(imageParams).toString();
+    const url = baseUrl + "?" + new URLSearchParams(imageParams).toString();
 
-    let res = await fetch(url);
+    const res = await fetch(url);
 
     if (!res.ok) {
         throw new Error('Network response was not ok');
     }
 
-    let data = await res.json();
-    let pages = data.query.pages;
-    let page = Object.values(pages)[0];
+    const data = await res.json();
+    const pages = data.query.pages;
+    const page = Object.values(pages)[0];
 
     if (!page.imageinfo || !page.imageinfo[0]) {
         throw new Error('No image information available');
@@ -56,12 +56,27 @@ function checkImage(imageUrl) {
     });
 }
 
+function renderBears(bears) {
+    const moreBears = document.querySelector('.more_bears');
+    let html = '';
+
+    bears.forEach((bear) => {
+        html += '<div class="bear">' +
+            '<img src="' + bear.image + '" alt="Image of ' + bear.name + '" style="width:200px; height:auto;">' +
+            '<p><b>' + bear.name + '</b> (' + bear.binomial + ')</p>' +
+            '<p>Range: ' + bear.range + '</p>' +
+            '</div>';
+    });
+
+    moreBears.innerHTML += html;
+}
+
 async function extractBears(wikitext) {
-    let speciesTables = wikitext.split('{{Species table/end}}');
-    let bearPromises = [];
+    const speciesTables = wikitext.split('{{Species table/end}}');
+    const bearPromises = [];
 
     speciesTables.forEach(function(table) {
-        let rows = table.split('{{Species table/row');
+        const rows = table.split('{{Species table/row');
 
         rows.forEach(function(row) {
             let nameMatch = row.match(/\|name=\[\[(.*?)\]\]/);
@@ -70,7 +85,7 @@ async function extractBears(wikitext) {
             let rangeMatch = row.match(/\|range=(.*?)(?=\s*\|range-image=)/);
 
             if (nameMatch && binomialMatch && imageMatch && rangeMatch) {
-                let fileName = imageMatch[1].trim().replace('File:', '');
+                const fileName = imageMatch[1].trim().replace('File:', '');
 
                 let bearPromise = (async () => {
                     let imageUrl;
@@ -96,19 +111,8 @@ async function extractBears(wikitext) {
         });
     });
 
-    Promise.all(bearPromises).then(function(bears) {
-        let moreBears = document.querySelector('.more_bears');
-
-        bears.forEach(function(bear) {
-            let html = '<div class="bear">' +
-                '<img src="' + bear.image + '" alt="Image of ' + bear.name + '" style="width:200px; height:auto;">' +
-                '<p><b>' + bear.name + '</b> (' + bear.binomial + ')</p>' +
-                '<p>Range: ' + bear.range + '</p>' +
-                '</div>';
-
-            moreBears.innerHTML += html;
-        });
-    });
+    const bears = await Promise.all(bearPromises);
+    renderBears(bears);
 }
 
 

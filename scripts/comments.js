@@ -1,47 +1,40 @@
 export function initializeComments() {
 // Show/hide comments toggle
-    let showHideBtn = document.querySelector('.show-hide');
-    let commentWrapper = document.querySelector('.comment-wrapper');
+    const showHideBtn = document.querySelector('.show-hide');
+    const commentWrapper = document.querySelector('.comment-wrapper');
 
-    commentWrapper.style.display = 'none';
+    let commentsVisible = false;
+
+    function updateCommentVisibility() {
+        commentWrapper.style.display = commentsVisible ? 'block' : 'none';
+        showHideBtn.textContent = commentsVisible ? 'Hide comments' : 'Show comments';
+    }
+    updateCommentVisibility();
 
     showHideBtn.addEventListener('click', () => {
-        let showHideText = showHideBtn.textContent;
-
-        if (showHideText === 'Show comments') {
-            showHideBtn.textContent = 'Hide comments';
-            commentWrapper.style.display = 'block';
-        } else {
-            showHideBtn.textContent = 'Show comments';
-            commentWrapper.style.display = 'none';
-        }
+        commentsVisible = !commentsVisible;
+        updateCommentVisibility();
     });
 
 // Comment form stuff
-    let form = document.querySelector('.comment-form');
-    let nameField = form.elements.name;
-    let commentField = form.elements.comment;
-    let list = document.querySelector('.comment-container');
+    const form = document.querySelector('.comment-form');
+    const nameField = form.elements.name;
+    const commentField = form.elements.comment;
+    const list = document.querySelector('.comment-container');
 
     form.addEventListener('submit', (event) => {
         event.preventDefault();
 
-        let listItem = document.createElement('li');
-        let namePara = document.createElement('p');
-        let commentPara = document.createElement('p');
-        let nameValue = nameField.value;
-        let commentValue = commentField.value;
+        const listItem = document.createElement('li');
+        const namePara = document.createElement('p');
+        const commentPara = document.createElement('p');
 
-        namePara.textContent = nameValue;
-        commentPara.textContent = commentValue;
+        namePara.textContent = nameField.value;
+        commentPara.textContent = commentField.value;
 
-        console.log(nameValue);
-
+        listItem.append(namePara, commentPara);
         list.appendChild(listItem);
-        listItem.appendChild(namePara);
-        listItem.appendChild(commentPara);
 
-        nameField.value = '';
-        commentField.value = '';
+        form.reset();
     });
 }
