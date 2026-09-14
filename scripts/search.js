@@ -8,7 +8,7 @@ export function initializeSearch() {
             parent.normalize();
         });
 
-        let searchKey = this.element.q.value.trim();
+        let searchKey = this.elements.q.value.trim();
         if (!searchKey) return;
 
         let regex = new RegExp('(' + searchKey.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi');

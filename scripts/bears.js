@@ -23,11 +23,35 @@ function fetchImageUrl(fileName) {
 
     let url = baseUrl + "?" + new URLSearchParams(imageParams).toString();
     return fetch(url).then(function(res) {
+        if (!res.ok) {
+            throw new Error('Network response was not ok');
+        }
         return res.json();
     }).then(function(data) {
         let pages = data.query.pages;
         let page = Object.values(pages)[0];
+
+        if (!page.imageinfo || !page.imageinfo[0]) {
+            throw new Error('No image information available');
+        }
+
         return page.imageinfo[0].url;
+    });
+}
+
+function checkImage(imageUrl) {
+    return new Promise(function(resolve, reject) {
+        let image = new Image();
+
+        image.onload = function() {
+            resolve(imageUrl);
+        };
+
+        image.onerror = function() {
+            reject(new Error('Image could not be loaded'));
+        };
+
+        image.src = imageUrl;
     });
 }
 
@@ -47,7 +71,13 @@ function extractBears(wikitext) {
             if (nameMatch && binomialMatch && imageMatch && rangeMatch) {
                 let fileName = imageMatch[1].trim().replace('File:', '');
 
-                let bearPromise = fetchImageUrl(fileName).then(function(imageUrl) {
+                let bearPromise = fetchImageUrl(fileName).then(function (imageUrl) {
+                    return checkImage(imageUrl);
+                })
+                    .catch(function(error) {
+                    console.error('Error fetching image URL:', error);
+                    return "media/placeholder.png";
+                }).then(function(imageUrl) {
                     return {
                         name: nameMatch[1],
                         binomial: binomialMatch[1],
@@ -79,8 +109,18 @@ function extractBears(wikitext) {
 
 export function initializeBears() {
     fetch(baseUrl + "?" + new URLSearchParams(params).toString())
-        .then(function(res) { return res.json(); })
+        .then(function(res) {
+            if (!res.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return res.json();
+        })
         .then(function(data) {
             extractBears(data.parse.wikitext['*']);
+        })
+        .catch(function(error) {
+            console.error('Error fetching bear data:', error);
+            var moreBears = document.querySelector('.more_bears');
+            moreBears.innerHTML += '<p>Could not load bear data.</p>';
         });
 }
