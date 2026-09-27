@@ -41,6 +41,8 @@ export function initializeSearch() {
             }
         }
 
-        walk(document.body);
+        document.querySelectorAll('article').forEach((article) => {
+            walk(article);
+        });
     });
 }

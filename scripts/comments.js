@@ -29,6 +29,11 @@ export function initializeComments() {
         const namePara = document.createElement('p');
         const commentPara = document.createElement('p');
 
+        if(!nameField.value.trim() || !commentField.value.trim()) {
+            alert("Please fill in both name and comment fields.");
+            return;
+        }
+
         namePara.textContent = nameField.value;
         commentPara.textContent = commentField.value;
 
