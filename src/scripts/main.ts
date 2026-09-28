@@ -1,6 +1,6 @@
-import { initializeSearch } from './search.ts';
-import { initializeComments } from './comments.ts';
-import { initializeBears } from './bears.ts';
+import { initializeSearch } from './search';
+import { initializeComments } from './comments';
+import { initializeBears } from './bears';
 
 initializeSearch();
 initializeComments();

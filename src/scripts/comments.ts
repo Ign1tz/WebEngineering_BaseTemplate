@@ -15,6 +15,9 @@ export function initializeComments(): void {
         return;
     }
 
+    const button = showHideBtn;
+    const wrapper = commentWrapper;
+
     const nameField = form.elements.namedItem('name');
     const commentField = form.elements.namedItem('comment');
 
@@ -29,15 +32,15 @@ export function initializeComments(): void {
     let commentsVisible = false;
 
     function updateCommentVisibility(): void {
-        commentWrapper.style.display = commentsVisible ? 'block' : 'none';
-        showHideBtn.textContent = commentsVisible
+        wrapper.style.display = commentsVisible ? 'block' : 'none';
+        button.textContent = commentsVisible
             ? 'Hide comments'
             : 'Show comments';
     }
 
     updateCommentVisibility();
 
-    showHideBtn.addEventListener('click', () => {
+    button.addEventListener('click', () => {
         commentsVisible = !commentsVisible;
         updateCommentVisibility();
     });
