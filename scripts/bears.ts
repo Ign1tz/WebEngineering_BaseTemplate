@@ -1,4 +1,8 @@
-import type { Bear, WikipediaParseResponse, WikipediaImageResponse } from '../types/types';
+import type {
+    Bear,
+    WikipediaParseResponse,
+    WikipediaImageResponse,
+} from '../types/types';
 
 const baseUrl = 'https://en.wikipedia.org/w/api.php';
 const title = 'List_of_ursids';
@@ -9,42 +13,67 @@ const params = {
     prop: 'wikitext',
     section: '3',
     format: 'json',
-    origin: '*'
+    origin: '*',
 };
 
-function isWikipediaParseResponse(data: unknown): data is WikipediaParseResponse {
-    if (typeof data !== 'object' || data === null || !('parse' in data)) return false;
+function isWikipediaParseResponse(
+    data: unknown
+): data is WikipediaParseResponse {
+    if (typeof data !== 'object' || data === null || !('parse' in data)) {
+        return false;
+    }
 
     const parse = data.parse;
-    if (typeof parse !== 'object' || parse === null || !('wikitext' in parse)) return false;
+
+    if (typeof parse !== 'object' || parse === null || !('wikitext' in parse)) {
+        return false;
+    }
 
     const wikitext = parse.wikitext;
-    return typeof wikitext === 'object' &&
+
+    return (
+        typeof wikitext === 'object' &&
         wikitext !== null &&
         '*' in wikitext &&
-        typeof wikitext['*'] === 'string';
+        typeof wikitext['*'] === 'string'
+    );
 }
 
-function isWikipediaImageResponse(data: unknown): data is WikipediaImageResponse {
-    if (typeof data !== 'object' || data === null || !('query' in data)) return false;
+function isWikipediaImageResponse(
+    data: unknown
+): data is WikipediaImageResponse {
+    if (typeof data !== 'object' || data === null || !('query' in data)) {
+        return false;
+    }
 
     const query = data.query;
-    if (typeof query !== 'object' || query === null || !('pages' in query)) return false;
+
+    if (typeof query !== 'object' || query === null || !('pages' in query)) {
+        return false;
+    }
 
     const pages = query.pages;
-    if (typeof pages !== 'object' || pages === null) return false;
+
+    if (typeof pages !== 'object' || pages === null) {
+        return false;
+    }
 
     const page = Object.values(pages)[0];
-    if (typeof page !== 'object' || page === null || !('imageinfo' in page)) return false;
+
+    if (typeof page !== 'object' || page === null || !('imageinfo' in page)) {
+        return false;
+    }
 
     const imageInfo = page.imageinfo;
 
-    return Array.isArray(imageInfo) &&
+    return (
+        Array.isArray(imageInfo) &&
         imageInfo.length > 0 &&
         typeof imageInfo[0] === 'object' &&
         imageInfo[0] !== null &&
         'url' in imageInfo[0] &&
-        typeof imageInfo[0].url === 'string';
+        typeof imageInfo[0].url === 'string'
+    );
 }
 
 async function fetchImageUrl(fileName: string): Promise<string> {
@@ -54,7 +83,7 @@ async function fetchImageUrl(fileName: string): Promise<string> {
         prop: 'imageinfo',
         iiprop: 'url',
         format: 'json',
-        origin: '*'
+        origin: '*',
     };
 
     const url = baseUrl + '?' + new URLSearchParams(imageParams).toString();
@@ -74,12 +103,18 @@ async function fetchImageUrl(fileName: string): Promise<string> {
     return page.imageinfo[0].url;
 }
 
-function checkImage(imageUrl: string): Promise<string> {
-    return new Promise((resolve, reject) => {
+async function checkImage(imageUrl: string): Promise<string> {
+    return await new Promise<string>((resolve, reject) => {
         const image = new Image();
 
-        image.onload = () => resolve(imageUrl);
-        image.onerror = () => reject(new Error('Image could not be loaded'));
+        image.onload = () => {
+            resolve(imageUrl);
+        };
+
+        image.onerror = () => {
+            reject(new Error('Image could not be loaded'));
+        };
+
         image.src = imageUrl;
     });
 }
@@ -87,7 +122,7 @@ function checkImage(imageUrl: string): Promise<string> {
 function renderBears(bears: Bear[]): void {
     const moreBears = document.querySelector<HTMLElement>('.more_bears');
 
-    if (!moreBears) {
+    if (moreBears === null) {
         console.error('More bears section could not be found.');
         return;
     }
@@ -95,10 +130,21 @@ function renderBears(bears: Bear[]): void {
     let html = '';
 
     bears.forEach((bear) => {
-        html += '<div class="bear">' +
-            '<img src="' + bear.image + '" alt="Image of ' + bear.name + '" style="width:200px; height:auto;">' +
-            '<p><b>' + bear.name + '</b> (' + bear.binomial + ')</p>' +
-            '<p>Range: ' + bear.range + '</p>' +
+        html +=
+            '<div class="bear">' +
+            '<img src="' +
+            bear.image +
+            '" alt="Image of ' +
+            bear.name +
+            '" style="width:200px; height:auto;">' +
+            '<p><b>' +
+            bear.name +
+            '</b> (' +
+            bear.binomial +
+            ')</p>' +
+            '<p>Range: ' +
+            bear.range +
+            '</p>' +
             '</div>';
     });
 
@@ -107,7 +153,7 @@ function renderBears(bears: Bear[]): void {
 
 async function extractBears(wikitext: string): Promise<void> {
     const speciesTables = wikitext.split('{{Species table/end}}');
-    const bearPromises: Promise<Bear>[] = [];
+    const bearPromises: Array<Promise<Bear>> = [];
 
     speciesTables.forEach((table: string) => {
         const rows = table.split('{{Species table/row');
@@ -118,7 +164,12 @@ async function extractBears(wikitext: string): Promise<void> {
             const imageMatch = row.match(/\|image=(.*?)\n/);
             const rangeMatch = row.match(/\|range=(.*?)(?=\s*\|range-image=)/);
 
-            if (nameMatch && binomialMatch && imageMatch && rangeMatch) {
+            if (
+                nameMatch !== null &&
+                binomialMatch !== null &&
+                imageMatch !== null &&
+                rangeMatch !== null
+            ) {
                 const fileName = imageMatch[1].trim().replace('File:', '');
 
                 const bearPromise: Promise<Bear> = (async () => {
@@ -136,7 +187,7 @@ async function extractBears(wikitext: string): Promise<void> {
                         name: nameMatch[1],
                         binomial: binomialMatch[1],
                         image: imageUrl,
-                        range: rangeMatch[1].trim()
+                        range: rangeMatch[1].trim(),
                     };
                 })();
 
@@ -151,7 +202,9 @@ async function extractBears(wikitext: string): Promise<void> {
 
 export async function initializeBears(): Promise<void> {
     try {
-        const res = await fetch(baseUrl + '?' + new URLSearchParams(params).toString());
+        const res = await fetch(
+            baseUrl + '?' + new URLSearchParams(params).toString()
+        );
 
         if (!res.ok) {
             throw new Error('Network response was not ok');
@@ -169,7 +222,7 @@ export async function initializeBears(): Promise<void> {
 
         const moreBears = document.querySelector<HTMLElement>('.more_bears');
 
-        if (moreBears) {
+        if (moreBears !== null) {
             moreBears.innerHTML += '<p>Could not load bear data.</p>';
         }
     }

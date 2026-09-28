@@ -1,28 +1,40 @@
-export function initializeSearch() {
-    const searchForm = document.querySelector<HTMLFormElement>('.search')!;
-    if (!searchForm) {
+export function initializeSearch(): void {
+    const searchForm = document.querySelector<HTMLFormElement>('.search');
+
+    if (searchForm === null) {
         console.error('Search form could not be found.');
         return;
     }
-    searchForm.addEventListener('submit', (event) => {
+
+    searchForm.addEventListener('submit', (event: SubmitEvent) => {
         event.preventDefault();
 
         document.querySelectorAll('.highlight').forEach((el) => {
             const parent = el.parentNode;
-            if (!parent) {
+
+            if (parent === null) {
                 console.error('Parent element could not be found.');
                 return;
             }
-            parent.replaceChild(document.createTextNode(el.textContent), el);
+
+            parent.replaceChild(
+                document.createTextNode(el.textContent ?? ''),
+                el
+            );
             parent.normalize();
         });
+
         const queryElement = searchForm.elements.namedItem('q');
+
         if (!(queryElement instanceof HTMLInputElement)) {
             return;
         }
 
         const searchKey = queryElement.value.trim();
-        if (!searchKey) return;
+
+        if (searchKey === '') {
+            return;
+        }
 
         const regex = new RegExp(
             '(' + searchKey.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')',
@@ -33,13 +45,13 @@ export function initializeSearch() {
             if (node.nodeType === Node.TEXT_NODE) {
                 const value = node.nodeValue;
 
-                if (!value) {
+                if (value === null || value === '') {
                     return;
                 }
 
                 const match = value.match(regex);
 
-                if (match) {
+                if (match !== null) {
                     const span = document.createElement('span');
 
                     span.innerHTML = value.replace(
@@ -49,8 +61,7 @@ export function initializeSearch() {
 
                     (node as ChildNode).replaceWith(...span.childNodes);
                 }
-            }
-            else if (
+            } else if (
                 node.nodeType === Node.ELEMENT_NODE &&
                 node instanceof Element &&
                 node.tagName !== 'SCRIPT' &&

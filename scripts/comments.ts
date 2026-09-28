@@ -1,17 +1,16 @@
 export function initializeComments(): void {
-    const showHideBtn =
-        document.querySelector<HTMLElement>('.show-hide');
-
+    const showHideBtn = document.querySelector<HTMLElement>('.show-hide');
     const commentWrapper =
         document.querySelector<HTMLElement>('.comment-wrapper');
+    const form = document.querySelector<HTMLFormElement>('.comment-form');
+    const list = document.querySelector<HTMLUListElement>('.comment-container');
 
-    const form =
-        document.querySelector<HTMLFormElement>('.comment-form');
-
-    const list =
-        document.querySelector<HTMLUListElement>('.comment-container');
-
-    if (!form || !list || !showHideBtn || !commentWrapper) {
+    if (
+        form === null ||
+        list === null ||
+        showHideBtn === null ||
+        commentWrapper === null
+    ) {
         console.error('Required comment elements could not be found.');
         return;
     }
@@ -30,11 +29,10 @@ export function initializeComments(): void {
     let commentsVisible = false;
 
     function updateCommentVisibility(): void {
-        commentWrapper.style.display =
-            commentsVisible ? 'block' : 'none';
-
-        showHideBtn.textContent =
-            commentsVisible ? 'Hide comments' : 'Show comments';
+        commentWrapper.style.display = commentsVisible ? 'block' : 'none';
+        showHideBtn.textContent = commentsVisible
+            ? 'Hide comments'
+            : 'Show comments';
     }
 
     updateCommentVisibility();
@@ -47,10 +45,7 @@ export function initializeComments(): void {
     form.addEventListener('submit', (event: SubmitEvent) => {
         event.preventDefault();
 
-        if (
-            !nameField.value.trim() ||
-            !commentField.value.trim()
-        ) {
+        if (nameField.value.trim() === '' || commentField.value.trim() === '') {
             alert('Please fill in both name and comment fields.');
             return;
         }

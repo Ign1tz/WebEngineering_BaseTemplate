@@ -1,0 +1,13 @@
+parserOptions:
+    project: ./tsconfig.json
+    sourceType: module
+
+env:
+    browser: true
+    es2022: true
+
+extends:
+    - standard-with-typescript
+    - plugin:@typescript-eslint/recommended
+    - plugin:prettier/recommended
+    - prettier
