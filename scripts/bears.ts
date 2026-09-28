@@ -204,7 +204,6 @@ function getBearName(bear: Bear): string {
     if (bear.name === '') {
         console.log('Missing name');
     }
-
 }
 
 export async function initializeBears(): Promise<void> {
