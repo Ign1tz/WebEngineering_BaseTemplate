@@ -200,12 +200,6 @@ async function extractBears(wikitext: string): Promise<void> {
     renderBears(bears);
 }
 
-function getBearName(bear: Bear): string {
-    if (bear.name === '') {
-        console.log('Missing name');
-    }
-}
-
 export async function initializeBears(): Promise<void> {
     try {
         const res = await fetch(

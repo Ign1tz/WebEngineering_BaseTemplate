@@ -19,7 +19,7 @@ export function initializeComments(): void {
     const commentField = form.elements.namedItem('comment');
 
     if (
-            !(nameField instanceof HTMLInputElement) ||
+        !(nameField instanceof HTMLInputElement) ||
         !(commentField instanceof HTMLInputElement)
     ) {
         console.error('Comment form fields could not be found.');

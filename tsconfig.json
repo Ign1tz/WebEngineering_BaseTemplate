@@ -17,5 +17,7 @@
         "noUnusedParameters": true,
         "noFallthroughCasesInSwitch": true
     },
-    "include": ["scripts/**/*.ts"]
+    "include": [
+        "src/scripts/**/*.ts"
+    ]
 }
