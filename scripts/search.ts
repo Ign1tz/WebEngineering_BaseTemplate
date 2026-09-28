@@ -1,16 +1,27 @@
 export function initializeSearch() {
-    const searchForm = document.querySelector('.search');
-
+    const searchForm = document.querySelector<HTMLFormElement>('.search')!;
+    if (!searchForm) {
+        console.error('Search form could not be found.');
+        return;
+    }
     searchForm.addEventListener('submit', (event) => {
         event.preventDefault();
 
         document.querySelectorAll('.highlight').forEach((el) => {
             const parent = el.parentNode;
+            if (!parent) {
+                console.error('Parent element could not be found.');
+                return;
+            }
             parent.replaceChild(document.createTextNode(el.textContent), el);
             parent.normalize();
         });
+        const queryElement = searchForm.elements.namedItem('q');
+        if (!(queryElement instanceof HTMLInputElement)) {
+            return;
+        }
 
-        const searchKey = event.currentTarget.elements.q.value.trim();
+        const searchKey = queryElement.value.trim();
         if (!searchKey) return;
 
         const regex = new RegExp(
@@ -18,21 +29,30 @@ export function initializeSearch() {
             'gi'
         );
 
-        function walk(node) {
+        function walk(node: Node): void {
             if (node.nodeType === Node.TEXT_NODE) {
-                const match = node.nodeValue.match(regex);
+                const value = node.nodeValue;
+
+                if (!value) {
+                    return;
+                }
+
+                const match = value.match(regex);
 
                 if (match) {
                     const span = document.createElement('span');
-                    span.innerHTML = node.nodeValue.replace(
+
+                    span.innerHTML = value.replace(
                         regex,
                         '<mark class="highlight">$1</mark>'
                     );
-                    node.replaceWith.apply(node, span.childNodes);
+
+                    (node as ChildNode).replaceWith(...span.childNodes);
                 }
             }
             else if (
                 node.nodeType === Node.ELEMENT_NODE &&
+                node instanceof Element &&
                 node.tagName !== 'SCRIPT' &&
                 node.tagName !== 'STYLE' &&
                 node.tagName !== 'FORM'

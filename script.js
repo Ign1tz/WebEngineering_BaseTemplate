@@ -1,4 +1,4 @@
-document.querySelector('.search.js').addEventListener('submit', function(e) {
+document.querySelector('.search.ts').addEventListener('submit', function(e) {
     e.preventDefault();
 
     document.querySelectorAll('.highlight').forEach(function(el) {
@@ -30,7 +30,7 @@ document.querySelector('.search.js').addEventListener('submit', function(e) {
 });
 
 
-// Show/hide comments.js toggle
+// Show/hide comments.ts toggle
 let showHideBtn = document.querySelector('.show-hide');
 let commentWrapper = document.querySelector('.comment-wrapper');
 
@@ -39,10 +39,10 @@ commentWrapper.style.display = 'none';
 showHideBtn.onclick = function() {
     let showHideText = showHideBtn.textContent;
     if (showHideText === 'Show comment') {
-        showHideBtn.textContent = 'Hide comments.js';
+        showHideBtn.textContent = 'Hide comments.ts';
         commentWrapper.style.display = 'block';
     } else {
-        showHideBtn.textContent = 'Show comments.js';
+        showHideBtn.textContent = 'Show comments.ts';
         commentWrapper.style.display = 'none';
     }
 };
