@@ -1,11 +1,7 @@
+import type { ReactElement } from 'react';
 import Search from '../search/Search';
-import {JSX} from "react";
 
-interface NavigationProps {
-    onSearch: (searchTerm: string) => void;
-}
-
-function Navigation({ onSearch }: NavigationProps): JSX.Element {
+function Navigation(): ReactElement {
     return (
         <div className="nav">
             <ul>
@@ -23,7 +19,7 @@ function Navigation({ onSearch }: NavigationProps): JSX.Element {
                 </li>
             </ul>
 
-            <Search onSearch={onSearch} />
+            <Search />
         </div>
     );
 }

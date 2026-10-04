@@ -1,16 +1,47 @@
-import { useState, type FormEvent, type ReactElement } from 'react';
+import {
+    useEffect,
+    useState,
+    type FormEvent,
+    type ReactElement,
+} from 'react';
+import {
+    useNavigate,
+    useSearchParams,
+} from 'react-router-dom';
 
-interface SearchProps {
-    onSearch: (searchTerm: string) => void;
-}
+function Search(): ReactElement {
+    const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
 
-function Search({ onSearch }: SearchProps): ReactElement {
-    const [inputValue, setInputValue] = useState('');
+    const searchTerm = searchParams.get('q') ?? '';
 
-    function handleSubmit(event: FormEvent<HTMLFormElement>): void {
+    const [inputValue, setInputValue] =
+        useState(searchTerm);
+
+    useEffect(() => {
+        setInputValue(searchTerm);
+    }, [searchTerm]);
+
+    function handleSubmit(
+        event: FormEvent<HTMLFormElement>
+    ): void {
         event.preventDefault();
 
-        onSearch(inputValue.trim());
+        const trimmedValue = inputValue.trim();
+
+        const params = new URLSearchParams();
+
+        if (trimmedValue !== '') {
+            params.set('q', trimmedValue);
+        }
+
+        const query = params.toString();
+
+        navigate(
+            query === ''
+                ? '/bears'
+                : `/bears?${query}`
+        );
     }
 
     return (

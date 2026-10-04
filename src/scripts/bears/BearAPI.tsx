@@ -16,6 +16,14 @@ const params = {
     origin: '*',
 };
 
+function createBearId(binomial: string): string {
+    return binomial
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-|-$/g, '');
+}
+
 function isWikipediaParseResponse(
     data: unknown
 ): data is WikipediaParseResponse {
@@ -151,7 +159,6 @@ async function extractBears(
     wikitext: string,
     signal: AbortSignal
 ): Promise<Bear[]> {
-
     const speciesTables =
         wikitext.split('{{Species table/end}}');
 
@@ -163,13 +170,10 @@ async function extractBears(
         rows.forEach((row) => {
             const nameMatch =
                 row.match(/\|name=\[\[(.*?)\]\]/);
-
             const binomialMatch =
                 row.match(/\|binomial=(.*?)\n/);
-
             const imageMatch =
                 row.match(/\|image=(.*?)\n/);
-
             const rangeMatch =
                 row.match(/\|range=(.*?)(?=\s*\|range-image=)/);
 
@@ -210,9 +214,12 @@ async function extractBears(
                             imageUrl = 'media/placeholder.png';
                         }
 
+                        const binomial = binomialMatch[1].trim();
+
                         return {
+                            id: createBearId(binomial),
                             name: nameMatch[1],
-                            binomial: binomialMatch[1],
+                            binomial,
                             image: imageUrl,
                             range: rangeMatch[1].trim(),
                         };
