@@ -1,8 +1,8 @@
 import type {
     Bear,
-    WikipediaParseResponse,
     WikipediaImageResponse,
-} from '../types/types';
+    WikipediaParseResponse,
+} from '../../types/types';
 
 const baseUrl = 'https://en.wikipedia.org/w/api.php';
 const title = 'List_of_ursids';
@@ -25,7 +25,11 @@ function isWikipediaParseResponse(
 
     const parse = data.parse;
 
-    if (typeof parse !== 'object' || parse === null || !('wikitext' in parse)) {
+    if (
+        typeof parse !== 'object' ||
+        parse === null ||
+        !('wikitext' in parse)
+    ) {
         return false;
     }
 
@@ -48,7 +52,11 @@ function isWikipediaImageResponse(
 
     const query = data.query;
 
-    if (typeof query !== 'object' || query === null || !('pages' in query)) {
+    if (
+        typeof query !== 'object' ||
+        query === null ||
+        !('pages' in query)
+    ) {
         return false;
     }
 
@@ -60,7 +68,11 @@ function isWikipediaImageResponse(
 
     const page = Object.values(pages)[0];
 
-    if (typeof page !== 'object' || page === null || !('imageinfo' in page)) {
+    if (
+        typeof page !== 'object' ||
+        page === null ||
+        !('imageinfo' in page)
+    ) {
         return false;
     }
 
@@ -79,27 +91,30 @@ function isWikipediaImageResponse(
 async function fetchImageUrl(fileName: string): Promise<string> {
     const imageParams = {
         action: 'query',
-        titles: 'File:' + fileName,
+        titles: `File:${fileName}`,
         prop: 'imageinfo',
         iiprop: 'url',
         format: 'json',
         origin: '*',
     };
 
-    const url = baseUrl + '?' + new URLSearchParams(imageParams).toString();
-    const res = await fetch(url);
+    const url =
+        baseUrl + '?' + new URLSearchParams(imageParams).toString();
 
-    if (!res.ok) {
+    const response = await fetch(url);
+
+    if (!response.ok) {
         throw new Error('Network response was not ok');
     }
 
-    const data: unknown = await res.json();
+    const data: unknown = await response.json();
 
     if (!isWikipediaImageResponse(data)) {
         throw new Error('Invalid image data received');
     }
 
     const page = Object.values(data.query.pages)[0];
+
     return page.imageinfo[0].url;
 }
 
@@ -119,50 +134,20 @@ async function checkImage(imageUrl: string): Promise<string> {
     });
 }
 
-function renderBears(bears: Bear[]): void {
-    const moreBears = document.querySelector<HTMLElement>('.more_bears');
-
-    if (moreBears === null) {
-        console.error('More bears section could not be found.');
-        return;
-    }
-
-    let html = '';
-
-    bears.forEach((bear) => {
-        html +=
-            '<div class="bear">' +
-            '<img src="' +
-            bear.image +
-            '" alt="Image of ' +
-            bear.name +
-            '" style="width:200px; height:auto;">' +
-            '<p><b>' +
-            bear.name +
-            '</b> (' +
-            bear.binomial +
-            ')</p>' +
-            '<p>Range: ' +
-            bear.range +
-            '</p>' +
-            '</div>';
-    });
-
-    moreBears.innerHTML += html;
-}
-
-async function extractBears(wikitext: string): Promise<void> {
+async function extractBears(wikitext: string): Promise<Bear[]> {
     const speciesTables = wikitext.split('{{Species table/end}}');
     const bearPromises: Array<Promise<Bear>> = [];
 
-    speciesTables.forEach((table: string) => {
+    speciesTables.forEach((table) => {
         const rows = table.split('{{Species table/row');
 
-        rows.forEach((row: string) => {
+        rows.forEach((row) => {
             const nameMatch = row.match(/\|name=\[\[(.*?)\]\]/);
             const binomialMatch = row.match(/\|binomial=(.*?)\n/);
             const imageMatch = row.match(/\|image=(.*?)\n/);
-            const rangeMatch = row.match(/\|range=(.*?)(?=\s*\|range-image=)/);
+            const rangeMatch = row.match(
+                /\|range=(.*?)(?=\s*\|range-image=)/
+            );
 
             if (
                 nameMatch !== null &&
@@ -172,7 +157,7 @@ async function extractBears(wikitext: string): Promise<void> {
             ) {
                 const fileName = imageMatch[1].trim().replace('File:', '');
 
-                const bearPromise: Promise<Bear> = (async () => {
+                const bearPromise = async (): Promise<Bear> => {
                     let imageUrl: string;
 
                     try {
@@ -189,41 +174,30 @@ async function extractBears(wikitext: string): Promise<void> {
                         image: imageUrl,
                         range: rangeMatch[1].trim(),
                     };
-                })();
+                };
 
-                bearPromises.push(bearPromise);
+                bearPromises.push(bearPromise());
             }
         });
     });
 
-    const bears = await Promise.all(bearPromises);
-    renderBears(bears);
+    return await Promise.all(bearPromises);
 }
 
-export async function initializeBears(): Promise<void> {
-    try {
-        const res = await fetch(
-            baseUrl + '?' + new URLSearchParams(params).toString()
-        );
+export async function fetchBears(): Promise<Bear[]> {
+    const response = await fetch(
+        baseUrl + '?' + new URLSearchParams(params).toString()
+    );
 
-        if (!res.ok) {
-            throw new Error('Network response was not ok');
-        }
-
-        const data: unknown = await res.json();
-
-        if (!isWikipediaParseResponse(data)) {
-            throw new Error('Invalid bear data received');
-        }
-
-        await extractBears(data.parse.wikitext['*']);
-    } catch (error) {
-        console.error('Error fetching bear data:', error);
-
-        const moreBears = document.querySelector<HTMLElement>('.more_bears');
-
-        if (moreBears !== null) {
-            moreBears.innerHTML += '<p>Could not load bear data.</p>';
-        }
+    if (!response.ok) {
+        throw new Error('Network response was not ok');
     }
+
+    const data: unknown = await response.json();
+
+    if (!isWikipediaParseResponse(data)) {
+        throw new Error('Invalid bear data received');
+    }
+
+    return await extractBears(data.parse.wikitext['*']);
 }
