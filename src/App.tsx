@@ -1,15 +1,15 @@
-import {JSX, useState} from 'react';
+import { useState, type ReactElement } from 'react';
 import Article from './scripts/articles/Article';
 import Navigation from './scripts/nav/Navigation';
 
-function App(): JSX.Element {
+function App(): ReactElement {
     const [searchTerm, setSearchTerm] = useState('');
 
     return (
         <>
-            <header className="header">
+            <div className="header">
                 <h1>Welcome to our wildlife website</h1>
-            </header>
+            </div>
 
             <Navigation onSearch={setSearchTerm} />
 

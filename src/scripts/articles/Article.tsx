@@ -1,48 +1,13 @@
+import type { ReactElement } from 'react';
 import BearList from '../bears/BearList';
 import Comments from '../comments/Comments';
-import {JSX} from "react";
+import HighlightedText from '../search/HighlightedText';
 
 interface ArticleProps {
     searchTerm: string;
 }
 
-interface HighlightedTextProps {
-    text: string;
-    searchTerm: string;
-}
-
-function HighlightedText({
-                             text,
-                             searchTerm,
-                         }: HighlightedTextProps): JSX.Element {
-    if (searchTerm === '') {
-        return <>{text}</>;
-    }
-
-    const escapedSearchTerm = searchTerm.replace(
-        /[.*+?^${}()|[\]\\]/g,
-        '\\$&'
-    );
-
-    const regex = new RegExp(`(${escapedSearchTerm})`, 'gi');
-    const parts = text.split(regex);
-
-    return (
-        <>
-            {parts.map((part, index) =>
-                part.toLowerCase() === searchTerm.toLowerCase() ? (
-                    <mark className="highlight" key={`${part}-${index}`}>
-                        {part}
-                    </mark>
-                ) : (
-                    part
-                )
-            )}
-        </>
-    );
-}
-
-function Article({ searchTerm }: ArticleProps): JSX.Element {
+function Article({ searchTerm }: ArticleProps): ReactElement {
     return (
         <article>
             <h1>
@@ -53,7 +18,10 @@ function Article({ searchTerm }: ArticleProps): JSX.Element {
             </h1>
 
             <p>
-                <HighlightedText text="By Evan Wild" searchTerm={searchTerm} />
+                <HighlightedText
+                    text="By Evan Wild"
+                    searchTerm={searchTerm}
+                />
             </p>
 
             <p>
@@ -64,38 +32,107 @@ function Article({ searchTerm }: ArticleProps): JSX.Element {
             </p>
 
             <h2>
-                <HighlightedText text="Types of bear" searchTerm={searchTerm} />
+                <HighlightedText
+                    text="Types of bear"
+                    searchTerm={searchTerm}
+                />
             </h2>
 
             <table>
                 <thead>
                 <tr>
-                    <td>Bear Type</td>
-                    <td>Coat</td>
-                    <td>Adult size</td>
-                    <td>Habitat</td>
-                    <td>Lifespan</td>
-                    <td>Diet</td>
+                    <td>
+                        <HighlightedText text="Bear Type" searchTerm={searchTerm} />
+                    </td>
+                    <td>
+                        <HighlightedText text="Coat" searchTerm={searchTerm} />
+                    </td>
+                    <td>
+                        <HighlightedText text="Adult size" searchTerm={searchTerm} />
+                    </td>
+                    <td>
+                        <HighlightedText text="Habitat" searchTerm={searchTerm} />
+                    </td>
+                    <td>
+                        <HighlightedText text="Lifespan" searchTerm={searchTerm} />
+                    </td>
+                    <td>
+                        <HighlightedText text="Diet" searchTerm={searchTerm} />
+                    </td>
                 </tr>
                 </thead>
 
                 <tbody>
                 <tr>
-                    <td>Wild</td>
-                    <td>Brown or black</td>
-                    <td>1.4 to 2.8 meters</td>
-                    <td>Woods and forests</td>
-                    <td>25 to 28 years</td>
-                    <td>Fish, meat, plants</td>
+                    <td>
+                        <HighlightedText text="Wild" searchTerm={searchTerm} />
+                    </td>
+                    <td>
+                        <HighlightedText
+                            text="Brown or black"
+                            searchTerm={searchTerm}
+                        />
+                    </td>
+                    <td>
+                        <HighlightedText
+                            text="1.4 to 2.8 meters"
+                            searchTerm={searchTerm}
+                        />
+                    </td>
+                    <td>
+                        <HighlightedText
+                            text="Woods and forests"
+                            searchTerm={searchTerm}
+                        />
+                    </td>
+                    <td>
+                        <HighlightedText
+                            text="25 to 28 years"
+                            searchTerm={searchTerm}
+                        />
+                    </td>
+                    <td>
+                        <HighlightedText
+                            text="Fish, meat, plants"
+                            searchTerm={searchTerm}
+                        />
+                    </td>
                 </tr>
 
                 <tr>
-                    <td>Urban</td>
-                    <td>North Face</td>
-                    <td>18 to 22</td>
-                    <td>Condos and coffee shops</td>
-                    <td>20 to 32 years</td>
-                    <td>Starbucks, sushi</td>
+                    <td>
+                        <HighlightedText text="Urban" searchTerm={searchTerm} />
+                    </td>
+                    <td>
+                        <HighlightedText
+                            text="North Face"
+                            searchTerm={searchTerm}
+                        />
+                    </td>
+                    <td>
+                        <HighlightedText
+                            text="18 to 22"
+                            searchTerm={searchTerm}
+                        />
+                    </td>
+                    <td>
+                        <HighlightedText
+                            text="Condos and coffee shops"
+                            searchTerm={searchTerm}
+                        />
+                    </td>
+                    <td>
+                        <HighlightedText
+                            text="20 to 32 years"
+                            searchTerm={searchTerm}
+                        />
+                    </td>
+                    <td>
+                        <HighlightedText
+                            text="Starbucks, sushi"
+                            searchTerm={searchTerm}
+                        />
+                    </td>
                 </tr>
                 </tbody>
             </table>
@@ -114,7 +151,10 @@ function Article({ searchTerm }: ArticleProps): JSX.Element {
                 />
             </p>
 
-            <img src="media/wild-bear.jpg" alt="Wild bear in forest" />
+            <img
+                src="media/wild-bear.jpg"
+                alt="Wild bear in forest"
+            />
 
             <p>
                 <HighlightedText
@@ -123,10 +163,16 @@ function Article({ searchTerm }: ArticleProps): JSX.Element {
                 />
             </p>
 
-            <img src="media/urban-bear.jpg" alt="Urban bear near buildings" />
+            <img
+                src="media/urban-bear.jpg"
+                alt="Urban bear near buildings"
+            />
 
             <h2>
-                <HighlightedText text="Mating rituals" searchTerm={searchTerm} />
+                <HighlightedText
+                    text="Mating rituals"
+                    searchTerm={searchTerm}
+                />
             </h2>
 
             <p>
@@ -139,17 +185,29 @@ function Article({ searchTerm }: ArticleProps): JSX.Element {
             <audio controls>
                 <source src="media/bear.mp3" type="audio/mp3" />
                 <source src="media/bear.ogg" type="audio/ogg" />
+
                 <p>
                     It looks like your browser doesn't support HTML5 audio players.
                 </p>
             </audio>
 
             <aside>
-                <h2>About the author</h2>
-                <p>Evan Wild is an unemployed plumber from Doncaster...</p>
+                <h2>
+                    <HighlightedText
+                        text="About the author"
+                        searchTerm={searchTerm}
+                    />
+                </h2>
+
+                <p>
+                    <HighlightedText
+                        text="Evan Wild is an unemployed plumber from Doncaster..."
+                        searchTerm={searchTerm}
+                    />
+                </p>
             </aside>
 
-            <Comments />
+            <Comments searchTerm={searchTerm} />
 
             <BearList />
         </article>

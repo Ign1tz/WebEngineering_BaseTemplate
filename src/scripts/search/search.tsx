@@ -1,32 +1,33 @@
-import {FormEvent, JSX, useState} from 'react';
+import { useState, type FormEvent, type ReactElement } from 'react';
 
 interface SearchProps {
     onSearch: (searchTerm: string) => void;
 }
 
-function Search({onSearch}: SearchProps): JSX.Element {
-    const [searchTerm, setSearchTerm] = useState('');
+function Search({ onSearch }: SearchProps): ReactElement {
+    const [inputValue, setInputValue] = useState('');
 
     function handleSubmit(event: FormEvent<HTMLFormElement>): void {
         event.preventDefault();
-        onSearch(searchTerm.trim());
+
+        onSearch(inputValue.trim());
     }
 
     return (
         <form className="search" onSubmit={handleSubmit}>
-    <input
-        type="search"
-    name="q"
-    placeholder="Search query"
-    value={searchTerm}
-    onChange={(event) => {
-        setSearchTerm(event.target.value);
-    }}
-    />
+            <input
+                type="search"
+                name="q"
+                placeholder="Search query"
+                value={inputValue}
+                onChange={(event) => {
+                    setInputValue(event.target.value);
+                }}
+            />
 
-    <input type="submit" value="Go!" />
+            <input type="submit" value="Go!" />
         </form>
-);
+    );
 }
 
 export default Search;
