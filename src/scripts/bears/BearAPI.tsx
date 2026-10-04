@@ -27,21 +27,13 @@ function createBearId(binomial: string): string {
 function isWikipediaParseResponse(
     data: unknown
 ): data is WikipediaParseResponse {
-    if (
-        typeof data !== 'object' ||
-        data === null ||
-        !('parse' in data)
-    ) {
+    if (typeof data !== 'object' || data === null || !('parse' in data)) {
         return false;
     }
 
     const parse = data.parse;
 
-    if (
-        typeof parse !== 'object' ||
-        parse === null ||
-        !('wikitext' in parse)
-    ) {
+    if (typeof parse !== 'object' || parse === null || !('wikitext' in parse)) {
         return false;
     }
 
@@ -58,21 +50,13 @@ function isWikipediaParseResponse(
 function isWikipediaImageResponse(
     data: unknown
 ): data is WikipediaImageResponse {
-    if (
-        typeof data !== 'object' ||
-        data === null ||
-        !('query' in data)
-    ) {
+    if (typeof data !== 'object' || data === null || !('query' in data)) {
         return false;
     }
 
     const query = data.query;
 
-    if (
-        typeof query !== 'object' ||
-        query === null ||
-        !('pages' in query)
-    ) {
+    if (typeof query !== 'object' || query === null || !('pages' in query)) {
         return false;
     }
 
@@ -84,11 +68,7 @@ function isWikipediaImageResponse(
 
     const page = Object.values(pages)[0];
 
-    if (
-        typeof page !== 'object' ||
-        page === null ||
-        !('imageinfo' in page)
-    ) {
+    if (typeof page !== 'object' || page === null || !('imageinfo' in page)) {
         return false;
     }
 
@@ -117,10 +97,7 @@ async function fetchImageUrl(
         origin: '*',
     };
 
-    const url =
-        baseUrl +
-        '?' +
-        new URLSearchParams(imageParams).toString();
+    const url = baseUrl + '?' + new URLSearchParams(imageParams).toString();
 
     const response = await fetch(url, { signal });
 
@@ -159,8 +136,7 @@ async function extractBears(
     wikitext: string,
     signal: AbortSignal
 ): Promise<Bear[]> {
-    const speciesTables =
-        wikitext.split('{{Species table/end}}');
+    const speciesTables = wikitext.split('{{Species table/end}}');
 
     const bearPromises: Array<Promise<Bear>> = [];
 
@@ -168,14 +144,10 @@ async function extractBears(
         const rows = table.split('{{Species table/row');
 
         rows.forEach((row) => {
-            const nameMatch =
-                row.match(/\|name=\[\[(.*?)\]\]/);
-            const binomialMatch =
-                row.match(/\|binomial=(.*?)\n/);
-            const imageMatch =
-                row.match(/\|image=(.*?)\n/);
-            const rangeMatch =
-                row.match(/\|range=(.*?)(?=\s*\|range-image=)/);
+            const nameMatch = row.match(/\|name=\[\[(.*?)\]\]/);
+            const binomialMatch = row.match(/\|binomial=(.*?)\n/);
+            const imageMatch = row.match(/\|image=(.*?)\n/);
+            const rangeMatch = row.match(/\|range=(.*?)(?=\s*\|range-image=)/);
 
             if (
                 nameMatch !== null &&
@@ -183,47 +155,38 @@ async function extractBears(
                 imageMatch !== null &&
                 rangeMatch !== null
             ) {
-                const fileName = imageMatch[1]
-                    .trim()
-                    .replace('File:', '');
+                const fileName = imageMatch[1].trim().replace('File:', '');
 
-                const bearPromise =
-                    async (): Promise<Bear> => {
-                        let imageUrl: string;
+                const bearPromise = async (): Promise<Bear> => {
+                    let imageUrl: string;
 
-                        try {
-                            imageUrl = await fetchImageUrl(
-                                fileName,
-                                signal
-                            );
+                    try {
+                        imageUrl = await fetchImageUrl(fileName, signal);
 
-                            imageUrl = await checkImage(imageUrl);
-                        } catch (error) {
-                            if (
-                                error instanceof DOMException &&
-                                error.name === 'AbortError'
-                            ) {
-                                throw error;
-                            }
-
-                            console.error(
-                                'Error loading image:',
-                                error
-                            );
-
-                            imageUrl = 'media/placeholder.png';
+                        imageUrl = await checkImage(imageUrl);
+                    } catch (error) {
+                        if (
+                            error instanceof DOMException &&
+                            error.name === 'AbortError'
+                        ) {
+                            throw error;
                         }
 
-                        const binomial = binomialMatch[1].trim();
+                        console.error('Error loading image:', error);
 
-                        return {
-                            id: createBearId(binomial),
-                            name: nameMatch[1],
-                            binomial,
-                            image: imageUrl,
-                            range: rangeMatch[1].trim(),
-                        };
+                        imageUrl = 'media/placeholder.png';
+                    }
+
+                    const binomial = binomialMatch[1].trim();
+
+                    return {
+                        id: createBearId(binomial),
+                        name: nameMatch[1],
+                        binomial,
+                        image: imageUrl,
+                        range: rangeMatch[1].trim(),
                     };
+                };
 
                 bearPromises.push(bearPromise());
             }
@@ -233,13 +196,9 @@ async function extractBears(
     return await Promise.all(bearPromises);
 }
 
-export async function fetchBears(
-    signal: AbortSignal
-): Promise<Bear[]> {
+export async function fetchBears(signal: AbortSignal): Promise<Bear[]> {
     const response = await fetch(
-        baseUrl +
-        '?' +
-        new URLSearchParams(params).toString(),
+        baseUrl + '?' + new URLSearchParams(params).toString(),
         { signal }
     );
 
@@ -253,8 +212,5 @@ export async function fetchBears(
         throw new Error('Invalid bear data received');
     }
 
-    return await extractBears(
-        data.parse.wikitext['*'],
-        signal
-    );
+    return await extractBears(data.parse.wikitext['*'], signal);
 }

@@ -1,8 +1,4 @@
-import {
-    useState,
-    type FormEvent,
-    type ReactElement,
-} from 'react';
+import { useState, type FormEvent, type ReactElement } from 'react';
 import HighlightedText from '../search/HighlightedText';
 
 interface Comment {
@@ -27,15 +23,11 @@ function Comments({ searchTerm }: CommentsProps): ReactElement {
     const [commentsVisible, setCommentsVisible] = useState(false);
     const [name, setName] = useState('');
     const [commentText, setCommentText] = useState('');
-    const [comments, setComments] =
-        useState<Comment[]>(initialComments);
+    const [comments, setComments] = useState<Comment[]>(initialComments);
 
-    const buttonText = commentsVisible
-        ? 'Hide comments'
-        : 'Show comments';
+    const buttonText = commentsVisible ? 'Hide comments' : 'Show comments';
 
-    const isFormValid =
-        name.trim() !== '' && commentText.trim() !== '';
+    const isFormValid = name.trim() !== '' && commentText.trim() !== '';
 
     function handleSubmit(event: FormEvent<HTMLFormElement>): void {
         event.preventDefault();
@@ -51,10 +43,7 @@ function Comments({ searchTerm }: CommentsProps): ReactElement {
             text: commentText.trim(),
         };
 
-        setComments((currentComments) => [
-            ...currentComments,
-            newComment,
-        ]);
+        setComments((currentComments) => [...currentComments, newComment]);
 
         setName('');
         setCommentText('');

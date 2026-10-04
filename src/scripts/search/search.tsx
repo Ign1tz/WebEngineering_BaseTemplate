@@ -1,13 +1,5 @@
-import {
-    useEffect,
-    useState,
-    type FormEvent,
-    type ReactElement,
-} from 'react';
-import {
-    useNavigate,
-    useSearchParams,
-} from 'react-router-dom';
+import { useEffect, useState, type FormEvent, type ReactElement } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 
 function Search(): ReactElement {
     const navigate = useNavigate();
@@ -15,16 +7,13 @@ function Search(): ReactElement {
 
     const searchTerm = searchParams.get('q') ?? '';
 
-    const [inputValue, setInputValue] =
-        useState(searchTerm);
+    const [inputValue, setInputValue] = useState(searchTerm);
 
     useEffect(() => {
         setInputValue(searchTerm);
     }, [searchTerm]);
 
-    function handleSubmit(
-        event: FormEvent<HTMLFormElement>
-    ): void {
+    function handleSubmit(event: FormEvent<HTMLFormElement>): void {
         event.preventDefault();
 
         const trimmedValue = inputValue.trim();
@@ -37,11 +26,7 @@ function Search(): ReactElement {
 
         const query = params.toString();
 
-        navigate(
-            query === ''
-                ? '/bears'
-                : `/bears?${query}`
-        );
+        void navigate(query === '' ? '/bears' : `/bears?${query}`);
     }
 
     return (

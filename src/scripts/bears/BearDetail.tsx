@@ -1,8 +1,5 @@
 import type { ReactElement } from 'react';
-import {
-    Link,
-    useParams,
-} from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { useBears } from './useBears';
 
 function BearDetail(): ReactElement {
@@ -46,18 +43,14 @@ function BearDetail(): ReactElement {
         );
     }
 
-    const bear = state.bears.find(
-        (candidate) => candidate.id === bearId
-    );
+    const bear = state.bears.find((candidate) => candidate.id === bearId);
 
     if (bear === undefined) {
         return (
             <main>
                 <h1>Bear not found</h1>
 
-                <p>
-                    No bear exists with the identifier "{bearId}".
-                </p>
+                <p>No bear exists with the identifier "{bearId}".</p>
 
                 <Link to="/bears">Back to bears</Link>
             </main>
@@ -83,8 +76,7 @@ function BearDetail(): ReactElement {
                 />
 
                 <p>
-                    <strong>Binomial name:</strong>{' '}
-                    {bear.binomial}
+                    <strong>Binomial name:</strong> {bear.binomial}
                 </p>
 
                 <p>

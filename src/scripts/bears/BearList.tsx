@@ -7,9 +7,7 @@ interface BearItemProps {
     bear: Bear;
 }
 
-function BearItem({
-                      bear,
-                  }: BearItemProps): ReactElement {
+function BearItem({ bear }: BearItemProps): ReactElement {
     return (
         <div className="bear">
             <Link to={`/bears/${bear.id}`}>
@@ -39,13 +37,9 @@ function BearList(): ReactElement {
         <section className="more_bears">
             <h2>More Bears</h2>
 
-            {state.status === 'loading' && (
-                <p>Loading bears...</p>
-            )}
+            {state.status === 'loading' && <p>Loading bears...</p>}
 
-            {state.status === 'empty' && (
-                <p>No bears were found.</p>
-            )}
+            {state.status === 'empty' && <p>No bears were found.</p>}
 
             {state.status === 'error' && (
                 <>
@@ -59,10 +53,7 @@ function BearList(): ReactElement {
 
             {state.status === 'success' &&
                 state.bears.map((bear) => (
-                    <BearItem
-                        key={bear.id}
-                        bear={bear}
-                    />
+                    <BearItem key={bear.id} bear={bear} />
                 ))}
         </section>
     );

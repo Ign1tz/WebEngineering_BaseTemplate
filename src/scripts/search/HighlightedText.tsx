@@ -6,9 +6,9 @@ interface HighlightedTextProps {
 }
 
 function HighlightedText({
-                             text,
-                             searchTerm,
-                         }: HighlightedTextProps): ReactElement {
+    text,
+    searchTerm,
+}: HighlightedTextProps): ReactElement {
     const trimmedSearchTerm = searchTerm.trim();
 
     if (trimmedSearchTerm === '') {
@@ -20,23 +20,16 @@ function HighlightedText({
         '\\$&'
     );
 
-    const regularExpression = new RegExp(
-        `(${escapedSearchTerm})`,
-        'gi'
-    );
+    const regularExpression = new RegExp(`(${escapedSearchTerm})`, 'gi');
 
     const parts = text.split(regularExpression);
 
     const highlightedParts: ReactNode[] = parts.map((part, index) => {
-        const isMatch =
-            part.toLowerCase() === trimmedSearchTerm.toLowerCase();
+        const isMatch = part.toLowerCase() === trimmedSearchTerm.toLowerCase();
 
         if (isMatch) {
             return (
-                <mark
-                    className="highlight"
-                    key={`${index}-${part}`}
-                >
+                <mark className="highlight" key={`${index}-${part}`}>
                     {part}
                 </mark>
             );
