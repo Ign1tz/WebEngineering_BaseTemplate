@@ -15,15 +15,16 @@
     "format:check": "prettier --check \"src/**/*.ts\""
   },
   "dependencies": {
-    "fastify": "^5"
+    "fastify": "^5",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
-    "typescript": "^5.9.3",
-    "eslint": "^8.57.1",
-    "@typescript-eslint/parser": "^6.21.0",
-    "@typescript-eslint/eslint-plugin": "^6.21.0",
-    "prettier": "^3.9.9",
     "@types/node": "^22",
-    "tsx": "^4"
+    "@typescript-eslint/eslint-plugin": "^6.21.0",
+    "@typescript-eslint/parser": "^6.21.0",
+    "eslint": "^8.57.1",
+    "prettier": "^3.9.9",
+    "tsx": "^4",
+    "typescript": "^5.9.3"
   }
 }
