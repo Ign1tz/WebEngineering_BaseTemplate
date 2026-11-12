@@ -1,8 +1,11 @@
 import { type JSX, useState } from 'react';
+import { Link, Route, Routes, useSearchParams } from 'react-router-dom';
 import Article from './scripts/articles/Article';
+import BearDetail from './scripts/bears/BearDetail';
+import BearList from './scripts/bears/BearList';
 import Navigation from './scripts/nav/Navigation';
 
-function App(): JSX.Element {
+function HomePage(): JSX.Element {
     const [searchTerm, setSearchTerm] = useState('');
 
     return (
@@ -46,4 +49,47 @@ function App(): JSX.Element {
     );
 }
 
-export default App;
+function BearListPage(): JSX.Element {
+    const [params, setParams] = useSearchParams();
+    const search = params.get('search') ?? '';
+
+    return (
+        <main>
+            <Link to="/">Back to article</Link>
+            <h1>Bears</h1>
+
+            <label>
+                Search bears
+                <input
+                    type="search"
+                    value={search}
+                    onChange={(event) => {
+                        const value = event.target.value;
+                        const next = new URLSearchParams(params);
+
+                        if (value === '') {
+                            next.delete('search');
+                        } else {
+                            next.set('search', value);
+                        }
+
+                        setParams(next, { replace: true });
+                    }}
+                />
+            </label>
+
+            <BearList search={search} standalone />
+        </main>
+    );
+}
+
+export default function App(): JSX.Element {
+    return (
+        <Routes>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/bears" element={<BearListPage />} />
+            <Route path="/bears/:bearId" element={<BearDetail />} />
+            <Route path="*" element={<Link to="/bears">Browse bears</Link>} />
+        </Routes>
+    );
+}

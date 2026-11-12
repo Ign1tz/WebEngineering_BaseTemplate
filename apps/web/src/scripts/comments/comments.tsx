@@ -1,45 +1,102 @@
 import { type FormEvent, type JSX, useState } from 'react';
 
 interface Comment {
-    id: number;
-    name: string;
+    id: string;
+    author: string;
     text: string;
 }
 
-function Comments(): JSX.Element {
-    const [commentsVisible, setCommentsVisible] = useState(false);
-    const [name, setName] = useState('');
-    const [commentText, setCommentText] = useState('');
+interface CommentsProps {
+    bearId?: string;
+}
 
-    const [comments, setComments] = useState<Comment[]>([
-        {
-            id: 1,
-            name: 'Bob Fossil',
-            text: 'Oh I am so glad you taught me all about the big brown angry guys...',
-        },
-    ]);
+export default function Comments({ bearId = '' }: CommentsProps): JSX.Element {
+    const [visible, setVisible] = useState(false);
+    const [busy, setBusy] = useState(false);
+    const [error, setError] = useState('');
+    const [author, setAuthor] = useState('');
+    const [text, setText] = useState('');
+    const [comments, setComments] = useState<Comment[]>([]);
 
-    function handleSubmit(event: FormEvent<HTMLFormElement>): void {
+    const id = bearId.trim();
+    const url =
+        id === ''
+            ? '/api/comments'
+            : `/api/bears/${encodeURIComponent(id)}/comments`;
+
+    async function request(
+        path: string,
+        message: string,
+        action: (response: Response) => Promise<void> | void,
+        options?: RequestInit
+    ): Promise<void> {
+        setBusy(true);
+        setError('');
+
+        try {
+            const response = await fetch(path, options);
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+
+            await action(response);
+        } catch {
+            setError(message);
+        } finally {
+            setBusy(false);
+        }
+    }
+
+    function toggleComments(): void {
+        setVisible(!visible);
+
+        if (!visible) {
+            void request(url, 'Could not load comments.', async (response) => {
+                setComments((await response.json()) as Comment[]);
+            });
+        }
+    }
+
+    function submit(event: FormEvent<HTMLFormElement>): void {
         event.preventDefault();
+        if (busy) return;
 
-        const trimmedName = name.trim();
-        const trimmedComment = commentText.trim();
+        const input = { author: author.trim(), text: text.trim() };
 
-        if (trimmedName === '' || trimmedComment === '') {
-            alert('Please fill in both name and comment fields.');
+        if (input.author === '' || input.text === '') {
+            setError('Enter your name and a comment.');
             return;
         }
 
-        const newComment: Comment = {
-            id: Date.now(),
-            name: trimmedName,
-            text: trimmedComment,
-        };
+        void request(
+            url,
+            'Could not post comment.',
+            async (response) => {
+                const comment = (await response.json()) as Comment;
+                setComments((current) => [...current, comment]);
+                setAuthor('');
+                setText('');
+            },
+            {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(input),
+            }
+        );
+    }
 
-        setComments((currentComments) => [...currentComments, newComment]);
-
-        setName('');
-        setCommentText('');
+    function remove(id: string): void {
+        void request(
+            `/api/comments/${encodeURIComponent(id)}`,
+            'Could not delete comment.',
+            () => {
+                setComments((current) =>
+                    current.filter((comment) => comment.id !== id)
+                );
+            },
+            { method: 'DELETE' }
+        );
     }
 
     return (
@@ -47,60 +104,64 @@ function Comments(): JSX.Element {
             <button
                 className="show-hide"
                 type="button"
-                onClick={() => {
-                    setCommentsVisible((visible) => !visible);
-                }}
+                aria-expanded={visible}
+                disabled={busy}
+                onClick={toggleComments}
             >
-                {commentsVisible ? 'Hide comments' : 'Show comments'}
+                {visible ? 'Hide comments' : 'Show comments'}
             </button>
 
-            {commentsVisible && (
+            {visible && (
                 <div className="comment-wrapper">
-                    <h1>Add comment</h1>
+                    <h3>Comments</h3>
+                    {error !== '' && <p role="alert">{error}</p>}
 
-                    <form className="comment-form" onSubmit={handleSubmit}>
-                        <div className="flex-pair">
-                            <label htmlFor="name">Your name:</label>
-
+                    <form className="comment-form" onSubmit={submit}>
+                        <label>
+                            Your name
                             <input
-                                type="text"
-                                name="name"
-                                id="name"
-                                placeholder="Enter your name"
-                                value={name}
+                                value={author}
+                                maxLength={80}
+                                required
+                                disabled={busy}
                                 onChange={(event) => {
-                                    setName(event.target.value);
+                                    setAuthor(event.target.value);
                                 }}
                             />
-                        </div>
+                        </label>
 
-                        <div className="flex-pair">
-                            <label htmlFor="comment">Your comment:</label>
-
-                            <input
-                                type="text"
-                                name="comment"
-                                id="comment"
-                                placeholder="Enter your comment"
-                                value={commentText}
+                        <label>
+                            Your comment
+                            <textarea
+                                value={text}
+                                maxLength={1000}
+                                required
+                                disabled={busy}
                                 onChange={(event) => {
-                                    setCommentText(event.target.value);
+                                    setText(event.target.value);
                                 }}
                             />
-                        </div>
+                        </label>
 
-                        <div>
-                            <input type="submit" value="Submit comment" />
-                        </div>
+                        <button type="submit" disabled={busy}>
+                            Submit comment
+                        </button>
                     </form>
-
-                    <h1>Comments</h1>
 
                     <ul className="comment-container">
                         {comments.map((comment) => (
                             <li key={comment.id}>
-                                <p>{comment.name}</p>
+                                <p>{comment.author}</p>
                                 <p>{comment.text}</p>
+                                <button
+                                    type="button"
+                                    disabled={busy}
+                                    onClick={() => {
+                                        remove(comment.id);
+                                    }}
+                                >
+                                    Delete
+                                </button>
                             </li>
                         ))}
                     </ul>
@@ -109,5 +170,3 @@ function Comments(): JSX.Element {
         </section>
     );
 }
-
-export default Comments;

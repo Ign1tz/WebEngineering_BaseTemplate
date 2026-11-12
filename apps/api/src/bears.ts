@@ -2,8 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 
 const wikipediaApi =
-    process.env.WIKIPEDIA_API_URL ||
-    'https://en.wikipedia.org/w/api.php';
+    process.env.WIKIPEDIA_API_URL || 'https://en.wikipedia.org/w/api.php';
 
 const userAgent =
     'WebEngineeringBears/0.1 (https://github.com/Ign1tz/WebEngineering_BaseTemplate)';
@@ -47,10 +46,7 @@ const imagesSchema = z.object({
     }),
 });
 
-async function fetchUpstream(
-    url: URL,
-    signal: AbortSignal
-): Promise<Response> {
+async function fetchUpstream(url: URL, signal: AbortSignal): Promise<Response> {
     const response = await fetch(url, {
         headers: { 'User-Agent': userAgent },
         redirect: 'error',
@@ -81,7 +77,7 @@ async function queryWikipedia(
     }
 }
 
-async function loadBears(): Promise<Bear[]> {
+export async function loadBears(): Promise<Bear[]> {
     const signal = AbortSignal.timeout(10_000);
     const article = articleSchema.parse(
         await queryWikipedia(
@@ -103,8 +99,12 @@ async function loadBears(): Promise<Bear[]> {
                 .match(/\|\s*name\s*=\s*\[\[([^\]]+)\]\]/)?.[1]
                 ?.split('|')
                 .at(-1);
-            const binomial = row.match(/\|\s*binomial\s*=([^|\n]+)/)?.[1]?.trim();
-            const title = row.match(/\|\s*image\s*=\s*(File:[^|\n]+)/i)?.[1]?.trim();
+            const binomial = row
+                .match(/\|\s*binomial\s*=([^|\n]+)/)?.[1]
+                ?.trim();
+            const title = row
+                .match(/\|\s*image\s*=\s*(File:[^|\n]+)/i)?.[1]
+                ?.trim();
             const range = row.match(
                 /\|\s*range\s*=(.*?)(?=\s*\|\s*range-image\s*=)/
             )?.[1];
@@ -126,8 +126,13 @@ async function loadBears(): Promise<Bear[]> {
             return { id, name, binomial, title, range };
         });
 
-    if (rows.length === 0 || new Set(rows.map(({ id }) => id)).size !== rows.length) {
-        throw new Error('Missing or duplicate bear species in Wikipedia article');
+    if (
+        rows.length === 0 ||
+        new Set(rows.map(({ id }) => id)).size !== rows.length
+    ) {
+        throw new Error(
+            'Missing or duplicate bear species in Wikipedia article'
+        );
     }
 
     const images = imagesSchema.parse(
@@ -177,10 +182,14 @@ export function registerBearRoutes(app: FastifyInstance): void {
             request.log.warn({ err: error }, 'Wikimedia request failed');
 
             if (error instanceof Error && error.name === 'TimeoutError') {
-                return reply.code(504).send({ error: 'Wikimedia request timed out' });
+                return reply
+                    .code(504)
+                    .send({ error: 'Wikimedia request timed out' });
             }
 
-            return reply.code(502).send({ error: 'Could not load Wikimedia data' });
+            return reply
+                .code(502)
+                .send({ error: 'Could not load Wikimedia data' });
         });
 
         routes.get('/api/bears', loadBears);
@@ -190,7 +199,9 @@ export function registerBearRoutes(app: FastifyInstance): void {
             async (request, reply) => {
                 const bears = await loadBears();
                 const bear = bears.find(({ id }) => id === request.params.id);
-                return bear ?? reply.code(404).send({ error: 'Bear not found' });
+                return (
+                    bear ?? reply.code(404).send({ error: 'Bear not found' })
+                );
             }
         );
 
@@ -209,7 +220,10 @@ export function registerBearRoutes(app: FastifyInstance): void {
                     return reply.code(404).send({ error: 'Image not found' });
                 }
 
-                const response = await fetchUpstream(url, AbortSignal.timeout(10_000));
+                const response = await fetchUpstream(
+                    url,
+                    AbortSignal.timeout(10_000)
+                );
                 const contentType = response.headers.get('content-type') ?? '';
 
                 if (
