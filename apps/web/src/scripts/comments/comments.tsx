@@ -1,4 +1,5 @@
 import { type FormEvent, type JSX, useState } from 'react';
+import { fetchApi } from '../../api';
 
 interface Comment {
     id: string;
@@ -26,7 +27,7 @@ export default function Comments({ bearId = '' }: CommentsProps): JSX.Element {
 
     async function request(
         path: string,
-        message: string,
+        fallback: string,
         action: (response: Response) => Promise<void> | void,
         options?: RequestInit
     ): Promise<void> {
@@ -34,15 +35,10 @@ export default function Comments({ bearId = '' }: CommentsProps): JSX.Element {
         setError('');
 
         try {
-            const response = await fetch(path, options);
-
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}`);
-            }
-
+            const response = await fetchApi(path, options);
             await action(response);
-        } catch {
-            setError(message);
+        } catch (failure) {
+            setError(failure instanceof Error ? failure.message : fallback);
         } finally {
             setBusy(false);
         }
@@ -86,13 +82,13 @@ export default function Comments({ bearId = '' }: CommentsProps): JSX.Element {
         );
     }
 
-    function remove(id: string): void {
+    function remove(commentId: string): void {
         void request(
-            `/api/comments/${encodeURIComponent(id)}`,
+            `/api/comments/${encodeURIComponent(commentId)}`,
             'Could not delete comment.',
             () => {
                 setComments((current) =>
-                    current.filter((comment) => comment.id !== id)
+                    current.filter((comment) => comment.id !== commentId)
                 );
             },
             { method: 'DELETE' }

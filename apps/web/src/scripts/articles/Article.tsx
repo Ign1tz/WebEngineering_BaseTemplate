@@ -150,7 +150,7 @@ function Article({ searchTerm }: ArticleProps): JSX.Element {
                 <p>Evan Wild is an unemployed plumber from Doncaster...</p>
             </aside>
 
-            <Comments bearId={""} />
+            <Comments bearId={''} />
 
             <BearList />
         </article>

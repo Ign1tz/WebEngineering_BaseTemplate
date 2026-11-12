@@ -2,40 +2,24 @@ import { randomUUID } from 'node:crypto';
 import type { FastifyInstance, FastifyReply } from 'fastify';
 import { z } from 'zod';
 import { loadBears } from './bears.js';
+import { NotFoundError, ValidationError } from './errors.js';
 
 const inputSchema = z.object({
     author: z.string().trim().min(1).max(80),
     text: z.string().trim().min(1).max(1000),
 });
 
-type CommentInput = z.infer<typeof inputSchema>;
-
-type Comment = CommentInput & {
+type Comment = z.infer<typeof inputSchema> & {
     id: string;
     bearId: string | null;
 };
 
-async function requireBear(id: string, reply: FastifyReply): Promise<boolean> {
-    try {
-        const bears = await loadBears();
+async function requireBear(id: string): Promise<void> {
+    const bears = await loadBears();
 
-        if (bears.some((bear) => bear.id === id)) {
-            return true;
-        }
-
-        reply.code(404).send({ error: 'Bear not found' });
-    } catch (error) {
-        const timedOut =
-            error instanceof Error && error.name === 'TimeoutError';
-
-        reply.code(timedOut ? 504 : 502).send({
-            error: timedOut
-                ? 'Wikimedia request timed out'
-                : 'Could not load Wikimedia data',
-        });
+    if (!bears.some((bear) => bear.id === id)) {
+        throw new NotFoundError('Bear not found.');
     }
-
-    return false;
 }
 
 export function registerCommentRoutes(app: FastifyInstance): void {
@@ -55,13 +39,17 @@ export function registerCommentRoutes(app: FastifyInstance): void {
         const input = inputSchema.safeParse(body);
 
         if (!input.success) {
-            return reply.code(400).send({
-                error: 'Author must be 1–80 characters and text must be 1–1000 characters.',
-            });
+            throw new ValidationError(
+                'Enter an author of 1–80 characters and a comment of 1–1000 characters.',
+                input.error.issues.map((issue) => ({
+                    field: issue.path.map(String).join('.') || 'body',
+                    message: issue.message,
+                }))
+            );
         }
 
-        if (bearId !== null && !(await requireBear(bearId, reply))) {
-            return reply;
+        if (bearId !== null) {
+            await requireBear(bearId);
         }
 
         const comment: Comment = {
@@ -86,29 +74,27 @@ export function registerCommentRoutes(app: FastifyInstance): void {
 
     app.get<{ Params: { id: string } }>(
         '/api/bears/:id/comments',
-        async ({ params }, reply) => {
-            if (!(await requireBear(params.id, reply))) {
-                return reply;
-            }
-
+        async ({ params }) => {
+            await requireBear(params.id);
             return listComments(params.id);
         }
     );
 
     app.post<{ Params: { id: string }; Body: unknown }>(
         '/api/bears/:id/comments',
-        async ({ params, body }, reply) =>
-            createComment(body, params.id, reply)
+        async ({ params, body }, reply) => createComment(body, params.id, reply)
     );
 
     app.get<{ Params: { commentId: string } }>(
         '/api/comments/:commentId',
-        async ({ params }, reply) => {
+        async ({ params }) => {
             const comment = comments.get(params.commentId);
 
-            return (
-                comment ?? reply.code(404).send({ error: 'Comment not found' })
-            );
+            if (comment === undefined) {
+                throw new NotFoundError('Comment not found.');
+            }
+
+            return comment;
         }
     );
 
@@ -116,7 +102,7 @@ export function registerCommentRoutes(app: FastifyInstance): void {
         '/api/comments/:commentId',
         async ({ params }, reply) => {
             if (!comments.delete(params.commentId)) {
-                return reply.code(404).send({ error: 'Comment not found' });
+                throw new NotFoundError('Comment not found.');
             }
 
             return reply.code(204).send();

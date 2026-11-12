@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
+import { NotFoundError, UpstreamError } from './errors.js';
 
 const wikipediaApi =
     process.env.WIKIPEDIA_API_URL || 'https://en.wikipedia.org/w/api.php';
@@ -30,9 +31,7 @@ const bearSchema = z.object({
 type Bear = z.infer<typeof bearSchema>;
 
 const articleSchema = z.object({
-    parse: z.object({
-        wikitext: z.object({ '*': z.string() }),
-    }),
+    parse: z.object({ wikitext: z.object({ '*': z.string() }) }),
 });
 
 const imagesSchema = z.object({
@@ -68,162 +67,152 @@ async function queryWikipedia(
     const url = new URL(wikipediaApi);
     url.search = new URLSearchParams({ format: 'json', ...params }).toString();
 
-    try {
-        const response = await fetchUpstream(url, signal);
-        return await response.json();
-    } catch (error) {
-        signal.throwIfAborted();
-        throw error;
-    }
+    const response = await fetchUpstream(url, signal);
+    return await response.json();
+}
+
+function normalizeTitle(title: string): string {
+    return title.replaceAll('_', ' ').normalize();
 }
 
 export async function loadBears(): Promise<Bear[]> {
     const signal = AbortSignal.timeout(10_000);
-    const article = articleSchema.parse(
-        await queryWikipedia(
-            {
-                action: 'parse',
-                page: 'List_of_ursids',
-                prop: 'wikitext',
-                section: '3',
-            },
-            signal
-        )
-    );
 
-    const rows = article.parse.wikitext['*']
-        .split(/\{\{Species table\/row\b/i)
-        .slice(1)
-        .map((row) => {
-            const name = row
-                .match(/\|\s*name\s*=\s*\[\[([^\]]+)\]\]/)?.[1]
-                ?.split('|')
-                .at(-1);
-            const binomial = row
-                .match(/\|\s*binomial\s*=([^|\n]+)/)?.[1]
-                ?.trim();
-            const title = row
-                .match(/\|\s*image\s*=\s*(File:[^|\n]+)/i)?.[1]
-                ?.trim();
-            const range = row.match(
-                /\|\s*range\s*=(.*?)(?=\s*\|\s*range-image\s*=)/
-            )?.[1];
-
-            if (!name || !binomial || !title || !range) {
-                throw new Error('Incomplete bear row in Wikipedia article');
-            }
-
-            const initial = binomial.match(/^([A-Z])\.\s+/)?.[1];
-            if (initial && !Object.hasOwn(genera, initial)) {
-                throw new Error(`Unknown genus abbreviation: ${initial}`);
-            }
-
-            const fullBinomial = initial
-                ? binomial.replace(/^[A-Z]\./, genera[initial])
-                : binomial;
-            const id = fullBinomial.toLowerCase().replace(/[^a-z0-9]+/g, '-');
-
-            return { id, name, binomial, title, range };
-        });
-
-    if (
-        rows.length === 0 ||
-        new Set(rows.map(({ id }) => id)).size !== rows.length
-    ) {
-        throw new Error(
-            'Missing or duplicate bear species in Wikipedia article'
+    try {
+        const article = articleSchema.parse(
+            await queryWikipedia(
+                {
+                    action: 'parse',
+                    page: 'List_of_ursids',
+                    prop: 'wikitext',
+                    section: '3',
+                },
+                signal
+            )
         );
-    }
 
-    const images = imagesSchema.parse(
-        await queryWikipedia(
-            {
-                action: 'query',
-                titles: rows.map(({ title }) => title).join('|'),
-                prop: 'imageinfo',
-                iiprop: 'url',
-                formatversion: '2',
-            },
-            signal
-        )
-    );
+        const rows = article.parse.wikitext['*']
+            .split(/\{\{Species table\/row\b/i)
+            .slice(1)
+            .map((row) => {
+                const name = row
+                    .match(/\|\s*name\s*=\s*\[\[([^\]]+)\]\]/)?.[1]
+                    ?.split('|')
+                    .at(-1);
+                const binomial = row
+                    .match(/\|\s*binomial\s*=([^|\n]+)/)?.[1]
+                    ?.trim();
+                const title = row
+                    .match(/\|\s*image\s*=\s*(File:[^|\n]+)/i)?.[1]
+                    ?.trim();
+                const range = row.match(
+                    /\|\s*range\s*=(.*?)(?=\s*\|\s*range-image\s*=)/
+                )?.[1];
 
-    const normalizeTitle = (title: string) =>
-        title.replaceAll('_', ' ').normalize();
+                if (!name || !binomial || !title || !range) {
+                    throw new Error('Incomplete bear row in Wikipedia article');
+                }
 
-    const imageUrls = new Map(
-        images.query.pages.map(({ title, imageinfo }) => [
-            normalizeTitle(title),
-            new URL(imageinfo[0].url),
-        ])
-    );
+                const initial = binomial.match(/^([A-Z])\.\s+/)?.[1];
 
-    return rows.map(({ title, ...bear }) => {
-        const image = imageUrls.get(normalizeTitle(title));
+                if (initial && !Object.hasOwn(genera, initial)) {
+                    throw new Error(`Unknown genus abbreviation: ${initial}`);
+                }
+
+                const fullBinomial = initial
+                    ? binomial.replace(/^[A-Z]\./, genera[initial])
+                    : binomial;
+                const id = fullBinomial
+                    .toLowerCase()
+                    .replace(/[^a-z0-9]+/g, '-');
+
+                return { id, name, binomial, title, range };
+            });
 
         if (
-            !image ||
-            image.origin !== imageOrigin ||
-            !imagePathPattern.test(image.pathname)
+            rows.length === 0 ||
+            new Set(rows.map(({ id }) => id)).size !== rows.length
         ) {
-            throw new Error(`Missing or invalid Wikimedia image: ${title}`);
+            throw new Error('Missing or duplicate bear species');
         }
 
-        return bearSchema.parse({
-            ...bear,
-            image: `/api/bears/images/${encodeURIComponent(image.pathname)}`,
+        const images = imagesSchema.parse(
+            await queryWikipedia(
+                {
+                    action: 'query',
+                    titles: rows.map(({ title }) => title).join('|'),
+                    prop: 'imageinfo',
+                    iiprop: 'url',
+                    formatversion: '2',
+                },
+                signal
+            )
+        );
+
+        const imageUrls = new Map(
+            images.query.pages.map(({ title, imageinfo }) => [
+                normalizeTitle(title),
+                new URL(imageinfo[0].url),
+            ])
+        );
+
+        return rows.map(({ title, ...bear }) => {
+            const image = imageUrls.get(normalizeTitle(title));
+
+            if (
+                !image ||
+                image.origin !== imageOrigin ||
+                !imagePathPattern.test(image.pathname)
+            ) {
+                throw new Error(`Missing or invalid Wikimedia image: ${title}`);
+            }
+
+            return bearSchema.parse({
+                ...bear,
+                image: `/api/bears/images/${encodeURIComponent(image.pathname)}`,
+            });
         });
-    });
+    } catch (error) {
+        throw new UpstreamError(signal.aborted ? signal.reason : error);
+    }
 }
 
 export function registerBearRoutes(app: FastifyInstance): void {
-    void app.register(async (routes) => {
-        routes.setErrorHandler((error, request, reply) => {
-            request.log.warn({ err: error }, 'Wikimedia request failed');
+    app.get('/api/bears', async () => loadBears());
 
-            if (error instanceof Error && error.name === 'TimeoutError') {
-                return reply
-                    .code(504)
-                    .send({ error: 'Wikimedia request timed out' });
+    app.get<{ Params: { id: string } }>(
+        '/api/bears/:id',
+        async ({ params }) => {
+            const bears = await loadBears();
+            const bear = bears.find(({ id }) => id === params.id);
+
+            if (bear === undefined) {
+                throw new NotFoundError('Bear not found.');
             }
 
-            return reply
-                .code(502)
-                .send({ error: 'Could not load Wikimedia data' });
-        });
+            return bear;
+        }
+    );
 
-        routes.get('/api/bears', loadBears);
+    app.get<{ Params: { path: string } }>(
+        '/api/bears/images/:path',
+        async ({ params }, reply) => {
+            const path = params.path;
 
-        routes.get<{ Params: { id: string } }>(
-            '/api/bears/:id',
-            async (request, reply) => {
-                const bears = await loadBears();
-                const bear = bears.find(({ id }) => id === request.params.id);
-                return (
-                    bear ?? reply.code(404).send({ error: 'Bear not found' })
-                );
+            if (!imagePathPattern.test(path)) {
+                throw new NotFoundError('Image not found.');
             }
-        );
 
-        routes.get<{ Params: { path: string } }>(
-            '/api/bears/images/:path',
-            async (request, reply) => {
-                const path = request.params.path;
-                const url = new URL(path, imageOrigin);
+            const url = new URL(path, imageOrigin);
 
-                if (
-                    !imagePathPattern.test(path) ||
-                    url.pathname !== path ||
-                    url.search ||
-                    url.hash
-                ) {
-                    return reply.code(404).send({ error: 'Image not found' });
-                }
+            if (url.pathname !== path || url.search || url.hash) {
+                throw new NotFoundError('Image not found.');
+            }
 
-                const response = await fetchUpstream(
-                    url,
-                    AbortSignal.timeout(10_000)
-                );
+            const signal = AbortSignal.timeout(10_000);
+
+            try {
+                const response = await fetchUpstream(url, signal);
                 const contentType = response.headers.get('content-type') ?? '';
 
                 if (
@@ -239,7 +228,9 @@ export function registerBearRoutes(app: FastifyInstance): void {
                     .header('X-Content-Type-Options', 'nosniff')
                     .header('Cache-Control', 'public, max-age=3600')
                     .send(response.body);
+            } catch (error) {
+                throw new UpstreamError(signal.aborted ? signal.reason : error);
             }
-        );
-    });
+        }
+    );
 }
