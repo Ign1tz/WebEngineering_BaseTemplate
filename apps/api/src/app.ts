@@ -1,5 +1,7 @@
 import { randomUUID } from 'node:crypto';
+import cors from '@fastify/cors';
 import Fastify from 'fastify';
+import { registerApiDocs } from './api-docs.js';
 import { registerBearRoutes } from './bears.js';
 import { registerCommentRoutes } from './comments.js';
 import { registerErrorHandling } from './errors.js';
@@ -12,30 +14,45 @@ export function createApp(version: string) {
             const supplied = request.headers['x-request-id'];
 
             return typeof supplied === 'string' &&
-                /^[a-zA-Z0-9._-]{1,100}$/.test(supplied)
+            /^[a-zA-Z0-9._-]{1,100}$/.test(supplied)
                 ? supplied
                 : randomUUID();
         },
     });
 
     const startedAt = process.uptime();
+    const allowedOrigins = (process.env.CORS_ALLOWED_ORIGINS ?? '')
+        .split(',')
+        .map((origin) => origin.trim())
+        .filter((origin) => origin !== '');
 
     registerErrorHandling(app);
 
-    app.get('/health', async () => ({
-        status: 'ok',
-        version,
-        uptime: process.uptime() - startedAt,
-    }));
+    void app.register(cors, {
+        origin: allowedOrigins,
+        methods: ['GET', 'POST', 'DELETE'],
+        allowedHeaders: ['Content-Type', 'X-Request-Id'],
+        exposedHeaders: ['Location', 'X-Request-Id'],
+    });
 
-    if (process.env.ENABLE_ERROR_TEST_ROUTE === '1') {
-        app.get('/api/debug/error', async () => {
-            throw new Error('Intentional test failure');
-        });
-    }
+    registerApiDocs(app, version);
 
-    registerBearRoutes(app);
-    registerCommentRoutes(app);
+    void app.register(async (routes) => {
+        routes.get('/health', async () => ({
+            status: 'ok',
+            version,
+            uptime: process.uptime() - startedAt,
+        }));
+
+        if (process.env.ENABLE_ERROR_TEST_ROUTE === '1') {
+            routes.get('/api/debug/error', async () => {
+                throw new Error('Intentional test failure');
+            });
+        }
+
+        registerBearRoutes(routes);
+        registerCommentRoutes(routes);
+    });
 
     return app;
 }

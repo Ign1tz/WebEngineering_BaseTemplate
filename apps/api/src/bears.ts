@@ -20,7 +20,7 @@ const genera: Record<string, string> = {
     U: 'Ursus',
 };
 
-const bearSchema = z.object({
+export const bearSchema = z.object({
     id: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
     name: z.string().trim().min(1),
     binomial: z.string().trim().min(1),

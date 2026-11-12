@@ -1,9 +1,14 @@
-import { fetchApi } from '../../api';
+import { apiUrl, fetchApi } from '../../api';
 import type { Bear } from '../../types/types';
+
+function resolveImage(bear: Bear): Bear {
+    return { ...bear, image: apiUrl(bear.image) };
+}
 
 export async function fetchBears(signal?: AbortSignal): Promise<Bear[]> {
     const response = await fetchApi('/api/bears', { signal });
-    return (await response.json()) as Bear[];
+    const bears = (await response.json()) as Bear[];
+    return bears.map(resolveImage);
 }
 
 export async function fetchBear(
@@ -15,5 +20,5 @@ export async function fetchBear(
         { signal }
     );
 
-    return (await response.json()) as Bear;
+    return resolveImage((await response.json()) as Bear);
 }

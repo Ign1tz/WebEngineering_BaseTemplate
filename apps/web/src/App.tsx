@@ -2,7 +2,6 @@ import { type JSX, useState } from 'react';
 import { Link, Route, Routes } from 'react-router-dom';
 import Article from './scripts/articles/Article';
 import BearDetail from './scripts/bears/BearDetail';
-import BearList from './scripts/bears/BearList';
 import Navigation from './scripts/nav/Navigation';
 
 function HomePage(): JSX.Element {
@@ -49,20 +48,10 @@ function HomePage(): JSX.Element {
     );
 }
 
-function BearListPage(): JSX.Element {
-    return (
-        <main>
-            <Link to="/">Back to article</Link>
-            <BearList standalone />
-        </main>
-    );
-}
-
 export default function App(): JSX.Element {
     return (
         <Routes>
             <Route path="/" element={<HomePage />} />
-            <Route path="/bears" element={<BearListPage />} />
             <Route path="/bears/:bearId" element={<BearDetail />} />
             <Route path="*" element={<Link to="/">Back to article</Link>} />
         </Routes>

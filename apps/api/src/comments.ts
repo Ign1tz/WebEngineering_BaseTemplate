@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { loadBears } from './bears.js';
 import { NotFoundError, ValidationError } from './errors.js';
 
-const inputSchema = z.object({
+export const inputSchema = z.object({
     author: z.string().trim().min(1).max(80),
     text: z.string().trim().min(1).max(1000),
 });

@@ -1,8 +1,18 @@
+/// <reference types="vite/client" />
+
+const apiOrigin = (import.meta.env.VITE_API_ORIGIN ?? '')
+    .trim()
+    .replace(/\/+$/, '');
+
+export function apiUrl(path: string): string {
+    return `${apiOrigin}${path}`;
+}
+
 export async function fetchApi(
     path: string,
     options?: RequestInit
 ): Promise<Response> {
-    const response = await fetch(path, options);
+    const response = await fetch(apiUrl(path), options);
 
     if (response.ok) {
         return response;

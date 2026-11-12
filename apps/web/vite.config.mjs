@@ -10,6 +10,7 @@ export default defineConfig({
     proxy: {
       '/api/bears': { target },
       '/api/comments': { target },
+      '/api/docs': { target },
       '/api/health': {
         target,
         rewrite: () => '/health',

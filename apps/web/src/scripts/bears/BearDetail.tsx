@@ -1,5 +1,5 @@
 import { type JSX, useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import type { Bear } from '../../types/types';
 import Comments from '../comments/comments';
 import { fetchBear } from './BearAPI';
@@ -47,8 +47,6 @@ function BearDetails({ bearId }: { bearId: string }): JSX.Element {
 
     return (
         <main>
-            <Link to="/bears">Back to bears</Link>
-
             {state.status === 'loading' && <p>Loading bear...</p>}
             {state.status === 'error' && <p role="alert">{state.detail}</p>}
 
@@ -78,7 +76,7 @@ export default function BearDetail(): JSX.Element {
     const { bearId } = useParams<'bearId'>();
 
     if (bearId === undefined) {
-        return <Link to="/bears">Back to bears</Link>;
+        return <p>Bear not found.</p>;
     }
 
     return <BearDetails key={bearId} bearId={bearId} />;
