@@ -1,0 +1,48 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    ports:
+      - "3000:3000"
+    develop:
+      watch:
+        - action: sync
+          path: ./apps/api/src
+          target: /workspace/apps/api/src
+        - action: rebuild
+          path: ./apps/api/tsconfig.json
+        - action: rebuild
+          path: ./apps/api/package.json
+        - action: rebuild
+          path: ./package.json
+        - action: rebuild
+          path: ./package-lock.json
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    environment:
+      API_PROXY_TARGET: http://api:3000
+    ports:
+      - "5173:5173"
+    depends_on:
+      - api
+    develop:
+      watch:
+        - action: sync
+          path: ./apps/web
+          target: /workspace/apps/web
+          ignore:
+            - node_modules/
+            - dist/
+            - package.json
+            - ".env*"
+        - action: rebuild
+          path: ./apps/web/package.json
+        - action: rebuild
+          path: ./package.json
+        - action: rebuild
+          path: ./package-lock.json
+        - action: rebuild
+          path: ./apps/api/package.json

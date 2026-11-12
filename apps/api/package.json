@@ -1,0 +1,29 @@
+{
+  "name": "@webengineering/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "start": "node dist/server.js",
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "test": "node --import tsx --test src/app.test.ts",
+    "lint": "eslint \"src/**/*.ts\"",
+    "lint:fix": "eslint --fix \"src/**/*.ts\"",
+    "format": "prettier --write \"src/**/*.ts\"",
+    "format:check": "prettier --check \"src/**/*.ts\""
+  },
+  "dependencies": {
+    "fastify": "^5"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "eslint": "^8.57.1",
+    "@typescript-eslint/parser": "^6.21.0",
+    "@typescript-eslint/eslint-plugin": "^6.21.0",
+    "prettier": "^3.9.9",
+    "@types/node": "^22",
+    "tsx": "^4"
+  }
+}
