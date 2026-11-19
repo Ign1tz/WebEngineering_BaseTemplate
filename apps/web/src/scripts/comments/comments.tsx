@@ -1,4 +1,5 @@
 import { type FormEvent, type JSX, useState } from 'react';
+
 import { fetchApi } from '../../api';
 
 interface Comment {
@@ -7,29 +8,37 @@ interface Comment {
     text: string;
 }
 
+interface CommentPage {
+    items: Comment[];
+    nextCursor: string | null;
+}
+
 interface CommentsProps {
     bearId?: string;
 }
 
 export default function Comments({ bearId = '' }: CommentsProps): JSX.Element {
+    return <CommentSection key={bearId} bearId={bearId.trim()} />;
+}
+
+function CommentSection({ bearId }: { bearId: string }): JSX.Element {
     const [visible, setVisible] = useState(false);
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState('');
     const [author, setAuthor] = useState('');
     const [text, setText] = useState('');
     const [comments, setComments] = useState<Comment[]>([]);
+    const [nextCursor, setNextCursor] = useState<string | null>(null);
 
-    const id = bearId.trim();
-    const url =
-        id === ''
-            ? '/api/comments'
-            : `/api/bears/${encodeURIComponent(id)}/comments`;
+    const url = bearId
+        ? `/api/bears/${encodeURIComponent(bearId)}/comments`
+        : '/api/comments';
 
     async function request(
         path: string,
         fallback: string,
         action: (response: Response) => Promise<void> | void,
-        options?: RequestInit
+        options?: RequestInit,
     ): Promise<void> {
         setBusy(true);
         setError('');
@@ -44,19 +53,43 @@ export default function Comments({ bearId = '' }: CommentsProps): JSX.Element {
         }
     }
 
+    async function loadComments(cursor?: string): Promise<void> {
+        const params = new URLSearchParams({ limit: '20' });
+
+        if (cursor) {
+            params.set('cursor', cursor);
+        }
+
+        const path = bearId ? `${url}?${params}` : url;
+
+        await request(path, 'Could not load comments.', async (response) => {
+            if (!bearId) {
+                setComments((await response.json()) as Comment[]);
+                return;
+            }
+
+            const page = (await response.json()) as CommentPage;
+            setComments((current) => cursor ? [...current, ...page.items] : page.items);
+            setNextCursor(page.nextCursor);
+        });
+    }
+
     function toggleComments(): void {
         setVisible(!visible);
 
         if (!visible) {
-            void request(url, 'Could not load comments.', async (response) => {
-                setComments((await response.json()) as Comment[]);
-            });
+            setComments([]);
+            setNextCursor(null);
+            void loadComments();
         }
     }
 
     function submit(event: FormEvent<HTMLFormElement>): void {
         event.preventDefault();
-        if (busy) return;
+
+        if (busy) {
+            return;
+        }
 
         const input = { author: author.trim(), text: text.trim() };
 
@@ -70,7 +103,12 @@ export default function Comments({ bearId = '' }: CommentsProps): JSX.Element {
             'Could not post comment.',
             async (response) => {
                 const comment = (await response.json()) as Comment;
-                setComments((current) => [...current, comment]);
+
+                // Older pages are loaded first. A new comment appears on a later page.
+                if (nextCursor === null) {
+                    setComments((current) => [...current, comment]);
+                }
+
                 setAuthor('');
                 setText('');
             },
@@ -78,7 +116,7 @@ export default function Comments({ bearId = '' }: CommentsProps): JSX.Element {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(input),
-            }
+            },
         );
     }
 
@@ -87,11 +125,9 @@ export default function Comments({ bearId = '' }: CommentsProps): JSX.Element {
             `/api/comments/${encodeURIComponent(commentId)}`,
             'Could not delete comment.',
             () => {
-                setComments((current) =>
-                    current.filter((comment) => comment.id !== commentId)
-                );
+                setComments((current) => current.filter((comment) => comment.id !== commentId));
             },
-            { method: 'DELETE' }
+            { method: 'DELETE' },
         );
     }
 
@@ -120,9 +156,7 @@ export default function Comments({ bearId = '' }: CommentsProps): JSX.Element {
                                 maxLength={80}
                                 required
                                 disabled={busy}
-                                onChange={(event) => {
-                                    setAuthor(event.target.value);
-                                }}
+                                onChange={(event) => setAuthor(event.target.value)}
                             />
                         </label>
 
@@ -133,9 +167,7 @@ export default function Comments({ bearId = '' }: CommentsProps): JSX.Element {
                                 maxLength={1000}
                                 required
                                 disabled={busy}
-                                onChange={(event) => {
-                                    setText(event.target.value);
-                                }}
+                                onChange={(event) => setText(event.target.value)}
                             />
                         </label>
 
@@ -152,15 +184,23 @@ export default function Comments({ bearId = '' }: CommentsProps): JSX.Element {
                                 <button
                                     type="button"
                                     disabled={busy}
-                                    onClick={() => {
-                                        remove(comment.id);
-                                    }}
+                                    onClick={() => remove(comment.id)}
                                 >
                                     Delete
                                 </button>
                             </li>
                         ))}
                     </ul>
+
+                    {nextCursor !== null && (
+                        <button
+                            type="button"
+                            disabled={busy}
+                            onClick={() => void loadComments(nextCursor)}
+                        >
+                            Load more
+                        </button>
+                    )}
                 </div>
             )}
         </section>

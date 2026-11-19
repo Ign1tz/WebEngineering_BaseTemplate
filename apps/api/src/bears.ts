@@ -1,7 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 
-import { NotFoundError, UpstreamError } from './errors.js';
+import { NotFoundError, UpstreamError, ValidationError } from './errors.js';
 import type { Bear, BearRepository } from './repositories/contracts.js';
 
 const wikipediaApi =
@@ -68,7 +68,7 @@ async function queryWikipedia(
     url.search = new URLSearchParams({ format: 'json', ...params }).toString();
 
     const response = await fetchUpstream(url, signal);
-    return await response.json();
+    return response.json();
 }
 
 function normalizeTitle(title: string): string {
@@ -99,15 +99,9 @@ export async function loadBears(): Promise<Bear[]> {
                     .match(/\|\s*name\s*=\s*\[\[([^\]]+)\]\]/)?.[1]
                     ?.split('|')
                     .at(-1);
-                const binomial = row
-                    .match(/\|\s*binomial\s*=([^|\n]+)/)?.[1]
-                    ?.trim();
-                const title = row
-                    .match(/\|\s*image\s*=\s*(File:[^|\n]+)/i)?.[1]
-                    ?.trim();
-                const range = row.match(
-                    /\|\s*range\s*=(.*?)(?=\s*\|\s*range-image\s*=)/,
-                )?.[1];
+                const binomial = row.match(/\|\s*binomial\s*=([^|\n]+)/)?.[1]?.trim();
+                const title = row.match(/\|\s*image\s*=\s*(File:[^|\n]+)/i)?.[1]?.trim();
+                const range = row.match(/\|\s*range\s*=(.*?)(?=\s*\|\s*range-image\s*=)/)?.[1];
 
                 if (!name || !binomial || !title || !range) {
                     throw new Error('Incomplete bear row in Wikipedia article');
@@ -173,7 +167,17 @@ export async function loadBears(): Promise<Bear[]> {
 }
 
 export function registerBearRoutes(app: FastifyInstance, bears: BearRepository): void {
-    app.get('/api/bears', async () => bears.list());
+    app.get<{ Querystring: { q?: string } }>('/api/bears', async ({ query }) => {
+        const parsed = z.string().trim().optional().safeParse(query.q);
+
+        if (!parsed.success) {
+            throw new ValidationError('Invalid search query.', [
+                { field: 'q', message: 'Expected a single string.' },
+            ]);
+        }
+
+        return bears.list(parsed.data);
+    });
 
     app.get<{ Params: { id: string } }>('/api/bears/:id', async ({ params }) => {
         const bear = await bears.findById(params.id);

@@ -1,10 +1,10 @@
 import { type JSX, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+
 import type { Bear } from '../../types/types';
 import { fetchBears } from './BearAPI';
 
-const placeholder = new URL('../../../media/placeholder.png', import.meta.url)
-    .href;
+const placeholder = new URL('../../../media/placeholder.png', import.meta.url).href;
 
 function BearItem({ bear }: { bear: Bear }): JSX.Element {
     return (
@@ -20,7 +20,6 @@ function BearItem({ bear }: { bear: Bear }): JSX.Element {
                         }
                     }}
                 />
-
                 <p>
                     <strong>{bear.name}</strong> ({bear.binomial})
                 </p>
@@ -31,61 +30,64 @@ function BearItem({ bear }: { bear: Bear }): JSX.Element {
     );
 }
 
-export default function BearList({
-                                     standalone = false,
-                                 }: {
-    standalone?: boolean;
-}): JSX.Element {
-    const [bears, setBears] = useState<Bear[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState('');
+type LoadState =
+    | { status: 'loading' }
+    | { status: 'ready'; bears: Bear[] }
+    | { status: 'error'; detail: string };
+
+function BearResults({ query }: { query: string }): JSX.Element {
+    const [state, setState] = useState<LoadState>({ status: 'loading' });
 
     useEffect(() => {
         const controller = new AbortController();
 
         async function load(): Promise<void> {
             try {
-                const result = await fetchBears(controller.signal);
+                const bears = await fetchBears(controller.signal, query);
 
                 if (!controller.signal.aborted) {
-                    setBears(result);
+                    setState({ status: 'ready', bears });
                 }
-            } catch (failure) {
+            } catch (error) {
                 if (!controller.signal.aborted) {
-                    setError(
-                        failure instanceof Error
-                            ? failure.message
-                            : 'Could not load bear data.'
-                    );
-                }
-            } finally {
-                if (!controller.signal.aborted) {
-                    setLoading(false);
+                    setState({
+                        status: 'error',
+                        detail: error instanceof Error ? error.message : 'Could not load bear data.',
+                    });
                 }
             }
         }
 
         void load();
+        return () => controller.abort();
+    }, [query]);
 
-        return () => {
-            controller.abort();
-        };
-    }, []);
+    if (state.status === 'loading') {
+        return <p>Loading bears...</p>;
+    }
 
+    if (state.status === 'error') {
+        return <p role="alert">{state.detail}</p>;
+    }
+
+    if (state.bears.length === 0) {
+        return <p>No bears were found.</p>;
+    }
+
+    return <>{state.bears.map((bear) => <BearItem key={bear.id} bear={bear} />)}</>;
+}
+
+export default function BearList({
+                                     standalone = false,
+                                     query = '',
+                                 }: {
+    standalone?: boolean;
+    query?: string;
+}): JSX.Element {
     return (
         <section className="more_bears">
             {standalone ? <h1>Bears</h1> : <h2>More Bears</h2>}
-
-            {loading && <p>Loading bears...</p>}
-            {error !== '' && <p role="alert">{error}</p>}
-
-            {!loading && error === '' && bears.length === 0 && (
-                <p>No bears were found.</p>
-            )}
-
-            {!loading &&
-                error === '' &&
-                bears.map((bear) => <BearItem key={bear.id} bear={bear} />)}
+            <BearResults key={query} query={query} />
         </section>
     );
 }

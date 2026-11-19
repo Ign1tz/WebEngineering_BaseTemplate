@@ -1,8 +1,10 @@
-import { asc, eq, isNull } from 'drizzle-orm';
+import { and, asc, eq, isNull, sql } from 'drizzle-orm';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { z } from 'zod';
 
+import { bearSchema } from '../bears.js';
 import { bears, comments } from '../db/schema.js';
+import { NotFoundError } from '../errors.js';
 import type { Repositories } from './contracts.js';
 
 const bearFields = {
@@ -20,29 +22,23 @@ const commentFields = {
     text: comments.text,
 };
 
-const imageSchema = z.string().startsWith('/api/bears/images/');
 const commentIdSchema = z.uuid();
-
-function toBear(row: {
-    id: string;
-    name: string;
-    binomial: string;
-    range: string;
-    image: string | null;
-}) {
-    return { ...row, image: imageSchema.parse(row.image) };
-}
 
 export function createDrizzleRepositories(db: NodePgDatabase): Repositories {
     return {
         bears: {
-            async list() {
+            async list(query) {
+                const filter = query
+                    ? sql`strpos(lower(${bears.name}), lower(${query})) > 0`
+                    : undefined;
+
                 const rows = await db
                     .select(bearFields)
                     .from(bears)
+                    .where(filter)
                     .orderBy(asc(bears.name), asc(bears.id));
 
-                return rows.map(toBear);
+                return rows.map((row) => bearSchema.parse(row));
             },
 
             async findById(id) {
@@ -52,19 +48,56 @@ export function createDrizzleRepositories(db: NodePgDatabase): Repositories {
                     .where(eq(bears.id, id))
                     .limit(1);
 
-                return row ? toBear(row) : undefined;
+                return row ? bearSchema.parse(row) : undefined;
             },
         },
 
         comments: {
             async list(bearId) {
+                const filter = bearId === null
+                    ? isNull(comments.bearId)
+                    : eq(comments.bearId, bearId);
+
                 return db
                     .select(commentFields)
                     .from(comments)
-                    .where(bearId === null
-                        ? isNull(comments.bearId)
-                        : eq(comments.bearId, bearId))
+                    .where(filter)
                     .orderBy(asc(comments.createdAt), asc(comments.id));
+            },
+
+            async listPage(bearId, limit, cursor) {
+                const afterCursor = cursor
+                    ? sql`(${comments.createdAt}, ${comments.id}) >
+                          (${cursor.createdAt}::timestamptz, ${cursor.id}::uuid)`
+                    : undefined;
+
+                const rows = await db
+                    .select({
+                        ...commentFields,
+                        createdAt: sql<string>`to_char(
+                            ${comments.createdAt} AT TIME ZONE 'UTC',
+                            'YYYY-MM-DD"T"HH24:MI:SS.US"Z"'
+                        )`,
+                    })
+                    .from(comments)
+                    .where(and(eq(comments.bearId, bearId), afterCursor))
+                    .orderBy(asc(comments.createdAt), asc(comments.id))
+                    .limit(limit + 1);
+
+                const page = rows.slice(0, limit);
+                const last = page.at(-1);
+
+                return {
+                    items: page.map(({ id, bearId, author, text }) => ({
+                        id,
+                        bearId,
+                        author,
+                        text,
+                    })),
+                    nextCursor: rows.length > limit && last
+                        ? { createdAt: last.createdAt, id: last.id }
+                        : null,
+                };
             },
 
             async findById(id) {
@@ -82,16 +115,31 @@ export function createDrizzleRepositories(db: NodePgDatabase): Repositories {
             },
 
             async create(bearId, input) {
-                const [row] = await db
-                    .insert(comments)
-                    .values({ ...input, bearId })
-                    .returning(commentFields);
+                try {
+                    const [row] = await db
+                        .insert(comments)
+                        .values({ ...input, bearId })
+                        .returning(commentFields);
 
-                if (!row) {
-                    throw new Error('Comment insert returned no row');
+                    if (!row) {
+                        throw new Error('Comment insert returned no row');
+                    }
+
+                    return row;
+                } catch (error) {
+                    const cause = error instanceof Error ? error.cause ?? error : error;
+
+                    if (
+                        bearId !== null &&
+                        cause instanceof Error &&
+                        'code' in cause &&
+                        cause.code === '23503'
+                    ) {
+                        throw new NotFoundError('Bear not found.');
+                    }
+
+                    throw error;
                 }
-
-                return row;
             },
 
             async delete(id) {

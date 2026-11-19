@@ -2,12 +2,40 @@ import type { FastifyInstance, FastifyReply } from 'fastify';
 import { z } from 'zod';
 
 import { NotFoundError, ValidationError } from './errors.js';
-import type { BearRepository, CommentRepository } from './repositories/contracts.js';
+import type {
+    BearRepository,
+    CommentCursor,
+    CommentRepository,
+} from './repositories/contracts.js';
 
 export const inputSchema = z.object({
     author: z.string().trim().min(1).max(80),
     text: z.string().trim().min(1).max(1000),
 });
+
+const pageQuery = z.object({
+    limit: z.string().regex(/^\d{1,3}$/)
+        .transform(Number)
+        .pipe(z.number().int().min(1).max(100))
+        .optional(),
+    cursor: z.string().min(1).max(256).regex(/^[a-zA-Z0-9_-]+$/).optional(),
+});
+
+const cursorSchema = z.object({
+    createdAt: z.iso.datetime({ precision: 6 }),
+    id: z.uuid(),
+});
+
+function decodeCursor(value: string): CommentCursor {
+    try {
+        const json = Buffer.from(value, 'base64url').toString('utf8');
+        return cursorSchema.parse(JSON.parse(json));
+    } catch {
+        throw new ValidationError('Invalid comment cursor.', [
+            { field: 'cursor', message: 'Use the nextCursor token from the previous page.' },
+        ]);
+    }
+}
 
 export function registerCommentRoutes(
     app: FastifyInstance,
@@ -55,11 +83,33 @@ export function registerCommentRoutes(
         createComment(body, null, reply),
     );
 
-    app.get<{ Params: { id: string } }>(
+    app.get<{ Params: { id: string }; Querystring: unknown }>(
         '/api/bears/:id/comments',
-        async ({ params }) => {
+        async ({ params, query }) => {
+            const parsed = pageQuery.safeParse(query);
+
+            if (!parsed.success) {
+                throw new ValidationError(
+                    'Invalid pagination parameters.',
+                    parsed.error.issues.map((issue) => ({
+                        field: issue.path.join('.'),
+                        message: issue.message,
+                    })),
+                );
+            }
+
+            const { limit = 20, cursor } = parsed.data;
+            const position = cursor === undefined ? undefined : decodeCursor(cursor);
+
             await requireBear(params.id);
-            return comments.list(params.id);
+            const page = await comments.listPage(params.id, limit, position);
+
+            return {
+                items: page.items,
+                nextCursor: page.nextCursor
+                    ? Buffer.from(JSON.stringify(page.nextCursor)).toString('base64url')
+                    : null,
+            };
         },
     );
 

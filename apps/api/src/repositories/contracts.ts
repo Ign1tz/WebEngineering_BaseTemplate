@@ -16,13 +16,28 @@ export interface Comment extends CommentInput {
     bearId: string | null;
 }
 
+export interface CommentCursor {
+    createdAt: string;
+    id: string;
+}
+
+export interface CommentPage {
+    items: Comment[];
+    nextCursor: CommentCursor | null;
+}
+
 export interface BearRepository {
-    list(): Promise<Bear[]>;
+    list(query?: string): Promise<Bear[]>;
     findById(id: string): Promise<Bear | undefined>;
 }
 
 export interface CommentRepository {
     list(bearId: string | null): Promise<Comment[]>;
+    listPage(
+        bearId: string,
+        limit: number,
+        cursor?: CommentCursor,
+    ): Promise<CommentPage>;
     findById(id: string): Promise<Comment | undefined>;
     create(bearId: string | null, input: CommentInput): Promise<Comment>;
     delete(id: string): Promise<boolean>;

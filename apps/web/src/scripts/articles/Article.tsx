@@ -1,6 +1,7 @@
+import { type JSX } from 'react';
+
 import BearList from '../bears/BearList';
 import Comments from '../comments/comments';
-import { type JSX } from 'react';
 
 interface ArticleProps {
     searchTerm: string;
@@ -11,16 +12,12 @@ interface HighlightedTextProps {
     searchTerm: string;
 }
 
-function HighlightedText({
-    text,
-    searchTerm,
-}: HighlightedTextProps): JSX.Element {
+function HighlightedText({ text, searchTerm }: HighlightedTextProps): JSX.Element {
     if (searchTerm === '') {
         return <>{text}</>;
     }
 
     const escapedSearchTerm = searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-
     const regex = new RegExp(`(${escapedSearchTerm})`, 'gi');
     const parts = text.split(regex);
 
@@ -33,20 +30,17 @@ function HighlightedText({
                     </mark>
                 ) : (
                     part
-                )
+                ),
             )}
         </>
     );
 }
 
-function Article({ searchTerm }: ArticleProps): JSX.Element {
+export default function Article({ searchTerm }: ArticleProps): JSX.Element {
     return (
         <article>
             <h1>
-                <HighlightedText
-                    text="The trouble with Bears"
-                    searchTerm={searchTerm}
-                />
+                <HighlightedText text="The trouble with Bears" searchTerm={searchTerm} />
             </h1>
 
             <p>
@@ -66,42 +60,37 @@ function Article({ searchTerm }: ArticleProps): JSX.Element {
 
             <table>
                 <thead>
-                    <tr>
-                        <td>Bear Type</td>
-                        <td>Coat</td>
-                        <td>Adult size</td>
-                        <td>Habitat</td>
-                        <td>Lifespan</td>
-                        <td>Diet</td>
-                    </tr>
+                <tr>
+                    <td>Bear Type</td>
+                    <td>Coat</td>
+                    <td>Adult size</td>
+                    <td>Habitat</td>
+                    <td>Lifespan</td>
+                    <td>Diet</td>
+                </tr>
                 </thead>
-
                 <tbody>
-                    <tr>
-                        <td>Wild</td>
-                        <td>Brown or black</td>
-                        <td>1.4 to 2.8 meters</td>
-                        <td>Woods and forests</td>
-                        <td>25 to 28 years</td>
-                        <td>Fish, meat, plants</td>
-                    </tr>
-
-                    <tr>
-                        <td>Urban</td>
-                        <td>North Face</td>
-                        <td>18 to 22</td>
-                        <td>Condos and coffee shops</td>
-                        <td>20 to 32 years</td>
-                        <td>Starbucks, sushi</td>
-                    </tr>
+                <tr>
+                    <td>Wild</td>
+                    <td>Brown or black</td>
+                    <td>1.4 to 2.8 meters</td>
+                    <td>Woods and forests</td>
+                    <td>25 to 28 years</td>
+                    <td>Fish, meat, plants</td>
+                </tr>
+                <tr>
+                    <td>Urban</td>
+                    <td>North Face</td>
+                    <td>18 to 22</td>
+                    <td>Condos and coffee shops</td>
+                    <td>20 to 32 years</td>
+                    <td>Starbucks, sushi</td>
+                </tr>
                 </tbody>
             </table>
 
             <h2>
-                <HighlightedText
-                    text="Habitats and Eating habits"
-                    searchTerm={searchTerm}
-                />
+                <HighlightedText text="Habitats and Eating habits" searchTerm={searchTerm} />
             </h2>
 
             <p>
@@ -123,10 +112,7 @@ function Article({ searchTerm }: ArticleProps): JSX.Element {
             <img src="media/urban-bear.jpg" alt="Urban bear near buildings" />
 
             <h2>
-                <HighlightedText
-                    text="Mating rituals"
-                    searchTerm={searchTerm}
-                />
+                <HighlightedText text="Mating rituals" searchTerm={searchTerm} />
             </h2>
 
             <p>
@@ -139,10 +125,7 @@ function Article({ searchTerm }: ArticleProps): JSX.Element {
             <audio controls>
                 <source src="media/bear.mp3" type="audio/mp3" />
                 <source src="media/bear.ogg" type="audio/ogg" />
-                <p>
-                    It looks like your browser doesn't support HTML5 audio
-                    players.
-                </p>
+                <p>It looks like your browser doesn't support HTML5 audio players.</p>
             </audio>
 
             <aside>
@@ -151,10 +134,7 @@ function Article({ searchTerm }: ArticleProps): JSX.Element {
             </aside>
 
             <Comments bearId={''} />
-
-            <BearList />
+            <BearList query={searchTerm} />
         </article>
     );
 }
-
-export default Article;

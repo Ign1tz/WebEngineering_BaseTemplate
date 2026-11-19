@@ -2,6 +2,7 @@ import swagger from '@fastify/swagger';
 import swaggerUi from '@fastify/swagger-ui';
 import type { FastifyInstance, FastifySchema } from 'fastify';
 import { z } from 'zod';
+
 import { bearSchema } from './bears.js';
 import { inputSchema } from './comments.js';
 
@@ -22,13 +23,10 @@ const problemSchema = z.object({
     status: z.number().int(),
     detail: z.string(),
     instance: z.string(),
-    errors: z
-        .array(z.object({ field: z.string(), message: z.string() }))
-        .optional(),
+    errors: z.array(z.object({ field: z.string(), message: z.string() })).optional(),
 });
 
 const problemJsonSchema = jsonSchema(problemSchema) as { type: 'object' };
-
 const problem = {
     description: 'Problem Details',
     content: {
@@ -60,30 +58,23 @@ type RouteContract = FastifySchema & {
 const contracts: Record<string, RouteContract> = {
     'GET /health': {
         response: {
-            200: jsonSchema(
-                z.object({
-                    status: z.literal('ok'),
-                    version: z.string(),
-                    uptime: z.number().nonnegative(),
-                })
-            ),
+            200: jsonSchema(z.object({
+                status: z.literal('ok'),
+                version: z.string(),
+                uptime: z.number().nonnegative(),
+            })),
         },
     },
     'GET /api/bears': {
+        querystring: jsonSchema(z.object({ q: z.string().optional() })),
         response: {
             200: jsonSchema(z.array(bearSchema)),
-            502: problem,
-            504: problem,
+            400: problem,
         },
     },
     'GET /api/bears/:id': {
         params: bearParams,
-        response: {
-            200: jsonSchema(bearSchema),
-            404: problem,
-            502: problem,
-            504: problem,
-        },
+        response: { 200: jsonSchema(bearSchema), 404: problem },
     },
     'GET /api/bears/images/:path': {
         params: jsonSchema(z.object({ path: z.string() })),
@@ -110,23 +101,23 @@ const contracts: Record<string, RouteContract> = {
     },
     'GET /api/bears/:id/comments': {
         params: bearParams,
+        querystring: jsonSchema(z.object({
+            limit: z.string().optional().describe('Page size from 1 to 100. Defaults to 20.'),
+            cursor: z.string().optional().describe('The nextCursor from the previous page.'),
+        })),
         response: {
-            200: commentList,
+            200: jsonSchema(z.object({
+                items: z.array(commentSchema),
+                nextCursor: z.string().nullable(),
+            })),
+            400: problem,
             404: problem,
-            502: problem,
-            504: problem,
         },
     },
     'POST /api/bears/:id/comments': {
         params: bearParams,
         body: commentBody,
-        response: {
-            201: created,
-            400: problem,
-            404: problem,
-            502: problem,
-            504: problem,
-        },
+        response: { 201: created, 400: problem, 404: problem },
     },
     'GET /api/comments/:commentId': {
         params: commentParams,

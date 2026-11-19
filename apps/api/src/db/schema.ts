@@ -19,6 +19,7 @@ export const comments = pgTable(
         createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     },
     (table) => [
-        index('comments_bear_id_created_at_idx').on(table.bearId, table.createdAt),
+        index('comments_bear_id_created_at_id_idx')
+            .on(table.bearId, table.createdAt, table.id),
     ],
 );
