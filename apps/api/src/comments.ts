@@ -1,8 +1,12 @@
 import { randomUUID } from 'node:crypto';
+
+import { eq } from 'drizzle-orm';
+import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import type { FastifyInstance, FastifyReply } from 'fastify';
 import { z } from 'zod';
-import { loadBears } from './bears.js';
-import { NotFoundError, ValidationError } from './errors.js';
+
+import { bears } from './db/schema.js';
+import { NotFoundError, ServiceUnavailableError, ValidationError } from './errors.js';
 
 export const inputSchema = z.object({
     author: z.string().trim().min(1).max(80),
@@ -14,16 +18,24 @@ type Comment = z.infer<typeof inputSchema> & {
     bearId: string | null;
 };
 
-async function requireBear(id: string): Promise<void> {
-    const bears = await loadBears();
-
-    if (!bears.some((bear) => bear.id === id)) {
-        throw new NotFoundError('Bear not found.');
-    }
-}
-
-export function registerCommentRoutes(app: FastifyInstance): void {
+export function registerCommentRoutes(app: FastifyInstance, db?: NodePgDatabase): void {
     const comments = new Map<string, Comment>();
+
+    async function requireBear(id: string): Promise<void> {
+        if (!db) {
+            throw new ServiceUnavailableError('The database is unavailable.');
+        }
+
+        const [bear] = await db
+            .select({ id: bears.id })
+            .from(bears)
+            .where(eq(bears.id, id))
+            .limit(1);
+
+        if (!bear) {
+            throw new NotFoundError('Bear not found.');
+        }
+    }
 
     function listComments(bearId: string | null): Comment[] {
         return Array.from(comments.values()).filter(

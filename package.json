@@ -11,7 +11,9 @@
     "format:check": "npm run format:check --workspaces",
     "dev": "docker compose up --build --watch",
     "prepare": "husky",
-    "test": "npm test --workspace apps/api"
+    "test": "npm test --workspace apps/api",
+    "db:migrate": "npm run db:migrate -w apps/api",
+    "db:seed": "npm run db:seed -w apps/api"
   },
   "lint-staged": {
     "apps/web/src/**/*.{js,jsx,ts,tsx}": [

@@ -8,8 +8,10 @@ import { registerApiDocs } from './api-docs.js';
 import { registerBearRoutes } from './bears.js';
 import { registerCommentRoutes } from './comments.js';
 import { registerErrorHandling } from './errors.js';
+import { drizzle } from "drizzle-orm/node-postgres";
 
 export function createApp(version: string, pool?: Pool) {
+    const db = pool ? drizzle(pool) : undefined;
     const app = Fastify({
         logger: true,
         requestIdHeader: false,
@@ -74,7 +76,7 @@ export function createApp(version: string, pool?: Pool) {
             });
         }
 
-        registerBearRoutes(routes);
+        registerBearRoutes(routes, db);
         registerCommentRoutes(routes);
     });
 

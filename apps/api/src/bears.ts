@@ -1,6 +1,10 @@
+import { asc, eq } from 'drizzle-orm';
+import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-import { NotFoundError, UpstreamError } from './errors.js';
+
+import { bears } from './db/schema.js';
+import { NotFoundError, ServiceUnavailableError, UpstreamError } from './errors.js';
 
 const wikipediaApi =
     process.env.WIKIPEDIA_API_URL || 'https://en.wikipedia.org/w/api.php';
@@ -177,22 +181,47 @@ export async function loadBears(): Promise<Bear[]> {
     }
 }
 
-export function registerBearRoutes(app: FastifyInstance): void {
-    app.get('/api/bears', async () => loadBears());
+function toBear(row: typeof bears.$inferSelect): Bear {
+    return bearSchema.parse({
+        id: row.id,
+        name: row.name,
+        binomial: row.binomial,
+        range: row.range,
+        image: row.imageUrl,
+    });
+}
 
-    app.get<{ Params: { id: string } }>(
-        '/api/bears/:id',
-        async ({ params }) => {
-            const bears = await loadBears();
-            const bear = bears.find(({ id }) => id === params.id);
-
-            if (bear === undefined) {
-                throw new NotFoundError('Bear not found.');
-            }
-
-            return bear;
+export function registerBearRoutes(app: FastifyInstance, db?: NodePgDatabase): void {
+    app.get('/api/bears', async () => {
+        if (!db) {
+            throw new ServiceUnavailableError('The database is unavailable.');
         }
-    );
+
+        const rows = await db
+            .select()
+            .from(bears)
+            .orderBy(asc(bears.name), asc(bears.id));
+
+        return rows.map(toBear);
+    });
+
+    app.get<{ Params: { id: string } }>('/api/bears/:id', async ({ params }) => {
+        if (!db) {
+            throw new ServiceUnavailableError('The database is unavailable.');
+        }
+
+        const [row] = await db
+            .select()
+            .from(bears)
+            .where(eq(bears.id, params.id))
+            .limit(1);
+
+        if (!row) {
+            throw new NotFoundError('Bear not found.');
+        }
+
+        return toBear(row);
+    });
 
     app.get<{ Params: { path: string } }>(
         '/api/bears/images/:path',

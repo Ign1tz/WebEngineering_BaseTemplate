@@ -18,6 +18,12 @@ class ApiError extends Error {
     }
 }
 
+export class ServiceUnavailableError extends ApiError {
+    constructor(detail: string) {
+        super(503, 'Service Unavailable', detail);
+    }
+}
+
 export class ValidationError extends ApiError {
     constructor(detail: string, errors: FieldError[]) {
         super(400, 'Bad Request', detail, errors);

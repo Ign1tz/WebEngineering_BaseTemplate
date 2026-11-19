@@ -12,7 +12,10 @@
     "lint": "eslint \"src/**/*.ts\"",
     "lint:fix": "eslint --fix \"src/**/*.ts\"",
     "format": "prettier --write \"src/**/*.ts\"",
-    "format:check": "prettier --check \"src/**/*.ts\""
+    "format:check": "prettier --check \"src/**/*.ts\"",
+    "db:generate": "drizzle-kit generate --config=./src/drizzle.config.ts",
+    "db:migrate": "drizzle-kit migrate --config=./src/drizzle.config.ts",
+    "db:seed": "tsx src/db/seed.ts"
   },
   "dependencies": {
     "@fastify/cors": "^11.4.1",
