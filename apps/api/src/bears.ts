@@ -1,10 +1,8 @@
-import { asc, eq } from 'drizzle-orm';
-import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 
-import { bears } from './db/schema.js';
-import { NotFoundError, ServiceUnavailableError, UpstreamError } from './errors.js';
+import { NotFoundError, UpstreamError } from './errors.js';
+import type { Bear, BearRepository } from './repositories/contracts.js';
 
 const wikipediaApi =
     process.env.WIKIPEDIA_API_URL || 'https://en.wikipedia.org/w/api.php';
@@ -32,8 +30,6 @@ export const bearSchema = z.object({
     image: z.string().startsWith('/api/bears/images/'),
 });
 
-type Bear = z.infer<typeof bearSchema>;
-
 const articleSchema = z.object({
     parse: z.object({ wikitext: z.object({ '*': z.string() }) }),
 });
@@ -44,7 +40,7 @@ const imagesSchema = z.object({
             z.object({
                 title: z.string(),
                 imageinfo: z.array(z.object({ url: z.url() })).min(1),
-            })
+            }),
         ),
     }),
 });
@@ -66,7 +62,7 @@ async function fetchUpstream(url: URL, signal: AbortSignal): Promise<Response> {
 
 async function queryWikipedia(
     params: Record<string, string>,
-    signal: AbortSignal
+    signal: AbortSignal,
 ): Promise<unknown> {
     const url = new URL(wikipediaApi);
     url.search = new URLSearchParams({ format: 'json', ...params }).toString();
@@ -91,8 +87,8 @@ export async function loadBears(): Promise<Bear[]> {
                     prop: 'wikitext',
                     section: '3',
                 },
-                signal
-            )
+                signal,
+            ),
         );
 
         const rows = article.parse.wikitext['*']
@@ -110,7 +106,7 @@ export async function loadBears(): Promise<Bear[]> {
                     .match(/\|\s*image\s*=\s*(File:[^|\n]+)/i)?.[1]
                     ?.trim();
                 const range = row.match(
-                    /\|\s*range\s*=(.*?)(?=\s*\|\s*range-image\s*=)/
+                    /\|\s*range\s*=(.*?)(?=\s*\|\s*range-image\s*=)/,
                 )?.[1];
 
                 if (!name || !binomial || !title || !range) {
@@ -126,17 +122,12 @@ export async function loadBears(): Promise<Bear[]> {
                 const fullBinomial = initial
                     ? binomial.replace(/^[A-Z]\./, genera[initial])
                     : binomial;
-                const id = fullBinomial
-                    .toLowerCase()
-                    .replace(/[^a-z0-9]+/g, '-');
+                const id = fullBinomial.toLowerCase().replace(/[^a-z0-9]+/g, '-');
 
                 return { id, name, binomial, title, range };
             });
 
-        if (
-            rows.length === 0 ||
-            new Set(rows.map(({ id }) => id)).size !== rows.length
-        ) {
+        if (rows.length === 0 || new Set(rows.map(({ id }) => id)).size !== rows.length) {
             throw new Error('Missing or duplicate bear species');
         }
 
@@ -149,15 +140,15 @@ export async function loadBears(): Promise<Bear[]> {
                     iiprop: 'url',
                     formatversion: '2',
                 },
-                signal
-            )
+                signal,
+            ),
         );
 
         const imageUrls = new Map(
             images.query.pages.map(({ title, imageinfo }) => [
                 normalizeTitle(title),
                 new URL(imageinfo[0].url),
-            ])
+            ]),
         );
 
         return rows.map(({ title, ...bear }) => {
@@ -181,46 +172,17 @@ export async function loadBears(): Promise<Bear[]> {
     }
 }
 
-function toBear(row: typeof bears.$inferSelect): Bear {
-    return bearSchema.parse({
-        id: row.id,
-        name: row.name,
-        binomial: row.binomial,
-        range: row.range,
-        image: row.imageUrl,
-    });
-}
-
-export function registerBearRoutes(app: FastifyInstance, db?: NodePgDatabase): void {
-    app.get('/api/bears', async () => {
-        if (!db) {
-            throw new ServiceUnavailableError('The database is unavailable.');
-        }
-
-        const rows = await db
-            .select()
-            .from(bears)
-            .orderBy(asc(bears.name), asc(bears.id));
-
-        return rows.map(toBear);
-    });
+export function registerBearRoutes(app: FastifyInstance, bears: BearRepository): void {
+    app.get('/api/bears', async () => bears.list());
 
     app.get<{ Params: { id: string } }>('/api/bears/:id', async ({ params }) => {
-        if (!db) {
-            throw new ServiceUnavailableError('The database is unavailable.');
-        }
+        const bear = await bears.findById(params.id);
 
-        const [row] = await db
-            .select()
-            .from(bears)
-            .where(eq(bears.id, params.id))
-            .limit(1);
-
-        if (!row) {
+        if (!bear) {
             throw new NotFoundError('Bear not found.');
         }
 
-        return toBear(row);
+        return bear;
     });
 
     app.get<{ Params: { path: string } }>(
@@ -260,6 +222,6 @@ export function registerBearRoutes(app: FastifyInstance, db?: NodePgDatabase): v
             } catch (error) {
                 throw new UpstreamError(signal.aborted ? signal.reason : error);
             }
-        }
+        },
     );
 }

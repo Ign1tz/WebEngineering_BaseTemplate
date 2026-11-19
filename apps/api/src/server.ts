@@ -1,7 +1,9 @@
+import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 import { z } from 'zod';
 
 import { createApp } from './app.js';
+import { createDrizzleRepositories } from './repositories/drizzle.js';
 
 const envSchema = z.object({
     DATABASE_URL: z.string().url().refine(
@@ -29,7 +31,12 @@ pool.on('error', (error) => {
     console.warn('Idle PostgreSQL connection failed', error);
 });
 
-const app = createApp(env.npm_package_version, pool);
+const app = createApp(env.npm_package_version, {
+    repositories: createDrizzleRepositories(drizzle(pool)),
+    checkReadiness: async () => {
+        await pool.query('SELECT 1');
+    },
+});
 
 app.addHook('onClose', async () => {
     await pool.end();

@@ -2,16 +2,19 @@ import { randomUUID } from 'node:crypto';
 
 import cors from '@fastify/cors';
 import Fastify from 'fastify';
-import type { Pool } from 'pg';
 
 import { registerApiDocs } from './api-docs.js';
 import { registerBearRoutes } from './bears.js';
 import { registerCommentRoutes } from './comments.js';
 import { registerErrorHandling } from './errors.js';
-import { drizzle } from "drizzle-orm/node-postgres";
+import type { Repositories } from './repositories/contracts.js';
 
-export function createApp(version: string, pool?: Pool) {
-    const db = pool ? drizzle(pool) : undefined;
+interface AppOptions {
+    repositories: Repositories;
+    checkReadiness?: () => Promise<void>;
+}
+
+export function createApp(version: string, options: AppOptions) {
     const app = Fastify({
         logger: true,
         requestIdHeader: false,
@@ -42,7 +45,7 @@ export function createApp(version: string, pool?: Pool) {
 
     registerApiDocs(app, version);
 
-    void app.register(async (routes) => {
+    void app.register(async (routes, routeOptions: AppOptions) => {
         routes.get('/health', async () => ({
             status: 'ok',
             version,
@@ -50,9 +53,9 @@ export function createApp(version: string, pool?: Pool) {
         }));
 
         routes.get('/health/ready', async (request, reply) => {
-            if (pool) {
+            if (routeOptions.checkReadiness) {
                 try {
-                    await pool.query('SELECT 1');
+                    await routeOptions.checkReadiness();
                     return reply.code(200).send({ status: 'ok' });
                 } catch (error) {
                     request.log.warn({ err: error }, 'Database readiness check failed');
@@ -76,9 +79,10 @@ export function createApp(version: string, pool?: Pool) {
             });
         }
 
-        registerBearRoutes(routes, db);
-        registerCommentRoutes(routes);
-    });
+        const { bears, comments } = routeOptions.repositories;
+        registerBearRoutes(routes, bears);
+        registerCommentRoutes(routes, bears, comments);
+    }, options);
 
     return app;
 }

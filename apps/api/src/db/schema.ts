@@ -13,9 +13,7 @@ export const comments = pgTable(
     'comments',
     {
         id: uuid('id').defaultRandom().primaryKey(),
-        bearId: text('bear_id')
-            .notNull()
-            .references(() => bears.id, { onDelete: 'cascade' }),
+        bearId: text('bear_id').references(() => bears.id, { onDelete: 'cascade' }),
         author: text('author').notNull(),
         text: text('text').notNull(),
         createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
