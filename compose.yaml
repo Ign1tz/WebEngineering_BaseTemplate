@@ -1,9 +1,26 @@
 services:
+  db:
+    image: postgres:18
+    environment:
+      POSTGRES_DB: app
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: app_dev_password
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - 'pg_isready -h 127.0.0.1 -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"'
+      interval: 2s
+      timeout: 3s
+      retries: 15
+
   api:
     build:
       context: .
       dockerfile: apps/api/Dockerfile
     environment:
+      DATABASE_URL: "${DATABASE_URL:-postgresql://app:app_dev_password@db:5432/app}"
       WIKIPEDIA_API_URL: ${WIKIPEDIA_API_URL:-}
     ports:
       - "3000:3000"
@@ -48,3 +65,7 @@ services:
           path: ./package-lock.json
         - action: rebuild
           path: ./apps/api/package.json
+
+
+volumes:
+  postgres_data:

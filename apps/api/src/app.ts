@@ -1,12 +1,15 @@
 import { randomUUID } from 'node:crypto';
+
 import cors from '@fastify/cors';
 import Fastify from 'fastify';
+import type { Pool } from 'pg';
+
 import { registerApiDocs } from './api-docs.js';
 import { registerBearRoutes } from './bears.js';
 import { registerCommentRoutes } from './comments.js';
 import { registerErrorHandling } from './errors.js';
 
-export function createApp(version: string) {
+export function createApp(version: string, pool?: Pool) {
     const app = Fastify({
         logger: true,
         requestIdHeader: false,
@@ -43,6 +46,27 @@ export function createApp(version: string) {
             version,
             uptime: process.uptime() - startedAt,
         }));
+
+        routes.get('/health/ready', async (request, reply) => {
+            if (pool) {
+                try {
+                    await pool.query('SELECT 1');
+                    return reply.code(200).send({ status: 'ok' });
+                } catch (error) {
+                    request.log.warn({ err: error }, 'Database readiness check failed');
+                }
+            }
+
+            return reply
+                .code(503)
+                .type('application/problem+json')
+                .send({
+                    type: 'about:blank',
+                    title: 'Service Unavailable',
+                    status: 503,
+                    detail: 'The database is unavailable.',
+                });
+        });
 
         if (process.env.ENABLE_ERROR_TEST_ROUTE === '1') {
             routes.get('/api/debug/error', async () => {
